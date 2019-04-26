@@ -32,6 +32,8 @@ class DistanceSensorItem {
 public:
 	typedef boost::shared_ptr<DistanceSensorItem> Ptr;
 
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
 	DistanceSensorItem() :
 		is_subscriber(false),
 		send_tf(false),
@@ -118,6 +120,8 @@ public:
 	{
 		PluginBase::initialize(uas_);
 
+		dist_nh.param<std::string>("base_frame_id", base_frame_id, "base_link");
+
 		XmlRpc::XmlRpcValue map_dict;
 		if (!dist_nh.getParam("", map_dict)) {
 			ROS_WARN_NAMED("distance_sensor", "DS: plugin not configured!");
@@ -148,6 +152,8 @@ private:
 	friend class DistanceSensorItem;
 
 	ros::NodeHandle dist_nh;
+
+	std::string base_frame_id;
 
 	std::unordered_map<uint8_t, DistanceSensorItem::Ptr> sensor_map;
 
@@ -252,7 +258,7 @@ private:
 
 			geometry_msgs::TransformStamped transform;
 
-			transform.header = m_uas->synchronized_header("fcu", dist_sen.time_boot_ms);
+			transform.header = m_uas->synchronized_header(base_frame_id, dist_sen.time_boot_ms);
 			transform.child_frame_id = sensor->frame_id;
 
 			/* rotation and position set */

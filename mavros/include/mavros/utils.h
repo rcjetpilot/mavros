@@ -70,9 +70,13 @@ std::string to_string(mavlink::common::MAV_SENSOR_ORIENTATION e);
 std::string to_string(mavlink::common::MAV_AUTOPILOT e);
 std::string to_string(mavlink::common::MAV_TYPE e);
 std::string to_string(mavlink::common::MAV_STATE e);
+std::string to_string(mavlink::common::MAV_COMPONENT e);
 std::string to_string(mavlink::common::MAV_ESTIMATOR_TYPE e);
 std::string to_string(mavlink::common::ADSB_ALTITUDE_TYPE e);
 std::string to_string(mavlink::common::ADSB_EMITTER_TYPE e);
+std::string to_string(mavlink::common::MAV_MISSION_RESULT e);
+std::string to_string(mavlink::common::MAV_FRAME e);
+std::string to_string(mavlink::common::MAV_DISTANCE_SENSOR e);
 
 /**
  * Helper to call to_string() for enum _T
@@ -98,6 +102,16 @@ int sensor_orientation_from_str(const std::string &sensor_orientation);
  * @brief Retreive timesync mode from name
  */
 timesync_mode timesync_mode_from_str(const std::string &mode);
+
+/**
+ * @brief Retreive MAV_FRAME from name
+ */
+mavlink::common::MAV_FRAME mav_frame_from_str(const std::string &mav_frame);
+
+/**
+ * @brief Retreive MAV_TYPE from name
+ */
+mavlink::common::MAV_TYPE mav_type_from_str(const std::string &mav_type);
 
 }	// namespace utils
 }	// namespace mavros

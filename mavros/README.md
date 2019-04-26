@@ -40,7 +40,8 @@ Supported schemas:
   - Serial: `serial:///path/to/serial/device[:baudrate][?ids=sysid,compid]`
   - Serial with hardware flow control: `serial-hwfc:///path/to/serial/device[:baudrate][?ids=sysid,compid]`
   - UDP: `udp://[bind_host][:port]@[remote_host[:port]][/?ids=sysid,compid]`
-  - UDP boroadcast: `udp-b://[bind_host][:port]@[:port][/?ids=sysid,compid]`
+  - UDP broadcast until GCS discovery: `udp-b://[bind_host][:port]@[:port][/?ids=sysid,compid]`
+  - UDP broadcast (permanent): `udp-pb://[bind_host][:port]@[:port][/?ids=sysid,compid]
   - TCP client: `tcp://[server_host][:port][/?ids=sysid,compid]`
   - TCP server: `tcp-l://[bind_host][:port][/?ids=sysid,compid]`
 
@@ -136,18 +137,19 @@ shared libraries (`libGeographic.so`).
 Since **GeographicLib requires certain datasets** (mainly the geoid dataset) so to fulfill
 certain calculations, these need to be installed manually by the user using `geographiclib-tools`,
 which can be installed by `apt-get` in Debian systems. For a quicker procedure, just **run
-the available script in the "tools" folder, `install_geographiclib_datasets.sh`**.
+the available script in the "mavros/scripts" folder, `install_geographiclib_datasets.sh`**.
 
 Note that if you are using an older MAVROS release source install and want to update to a new one, remember to
 run `rosdep update` before running `rosdep install --from-paths ${ROS_WORKSPACE} --ignore-src --rosdistro=${ROSDISTRO}`,
 with `ROS_WORKSPACE` your src folder of catkin workspace. This will allow updating the `rosdep` list
 and install the required dependencies when issuing `rosdep install`.
 
-:bangbang:**The geoid dataset is mandatory to allow the conversion between heights in order to
-respect ROS msg API!**:bangbang:
+:bangbang: **The geoid dataset is mandatory to allow the conversion between heights in order to
+respect ROS msg API. Not having the dataset available will shutdown the `mavros_node`** :bangbang:
 
-:heavy_exclamation_mark:Run `mavros/tools/install_geographiclib_datasets.sh` to install all datasets or
-`sudo geographiclib-get-geoids egm96-5` to install the geoid dataset only.:heavy_exclamation_mark:
+:heavy_exclamation_mark:Run `install_geographiclib_datasets.sh` to install all datasets or
+`geographiclib-datasets-download egm96_5` (*Debian 7*, *Ubuntu 14.04*, *14.10*), `geographiclib-get-geoids egm96-5`
+(*Debian 8*, *Fedora 22*, *Ubuntu 15.04* or later) to install the geoid dataset only:heavy_exclamation_mark:
 
 
 ### Binary installation (deb)
@@ -158,6 +160,11 @@ Kinetic also support Debian Jessie amd64 and arm64 (ARMv8).
 Just use `apt-get` for installation:
 
     sudo apt-get install ros-kinetic-mavros ros-kinetic-mavros-extras
+
+Then install GeographicLib datasets by running the `install_geographiclib_datasets.sh` script:
+
+    wget https://raw.githubusercontent.com/mavlink/mavros/master/mavros/scripts/install_geographiclib_datasets.sh
+    ./install_geographiclib_datasets.sh
 
 
 ### Source installation
@@ -183,16 +190,21 @@ rosinstall_generator --rosdistro kinetic mavlink | tee /tmp/mavros.rosinstall
 rosinstall_generator --upstream mavros | tee -a /tmp/mavros.rosinstall
 # alternative: latest source
 # rosinstall_generator --upstream-development mavros | tee -a /tmp/mavros.rosinstall
+# For fetching all the dependencies into your catkin_ws, just add '--deps' to the above scripts
+# ex: rosinstall_generator --upstream mavros --deps | tee -a /tmp/mavros.rosinstall
 
 # 4. Create workspace & deps
 wstool merge -t src /tmp/mavros.rosinstall
 wstool update -t src -j4
 rosdep install --from-paths src --ignore-src -y
 
-# 5. Build source
+# 5. Install GeographicLib datasets:
+./src/mavros/mavros/scripts/install_geographiclib_datasets.sh
+
+# 6. Build source
 catkin build
 
-# 6. Make sure that you use setup.bash or setup.zsh from workspace.
+# 7. Make sure that you use setup.bash or setup.zsh from workspace.
 #    Else rosrun can't find nodes from this workspace.
 source devel/setup.bash
 ```
@@ -212,23 +224,16 @@ Load order always:
 *Note*: `MAVLINK_DIALECT` not used anymore.
 
 
-Contributing
+Troubleshooting
 ------------
 
-1. Fork the repo:
-![fork](http://s24.postimg.org/pfvt9sdv9/Fork_mavros.png)
-2. Clone the repo (`git clone https://github.com/mavlink/mavros.git`);
-3. Create a remote connection to your repo (`git remote add <remote_repo> git@github.com:<YourGitUser>/mavros.git`);
-4. Create a feature/dev branch (`git checkout -b <feature_branch>`);
-5. Add the changes;
-6. Apply the changes by committing (`git commit -m "<message>"` or `git commit -a` and then write message; if adding new files: `git add <path/to/file.ext>`);
-7. Check code style `uncrustify -c ${ROS_WORKSPACE}/mavros/mavros/tools/uncrustify-cpp.cfg --replace --no-backup <path/to/file.ext>`;
-8. Fix small code style errors and typos;
-9. Commit with description like "uncrustify" or "code style fix". Please avoid changes in program logic (separate commit are better than mix of style and bug fix);
-10. Run tests:
- - with `catkin_make`, issue `catkin_make tests` and then `catkin_make run_tests`;
- - with `catkin tools`, issue `catkin run_tests`;
-11. If everything goes as planned, push the changes (`git push -u <remote_repo> <feature_branch>`) and issue a pull request.
+### Error: serial0: receive: End of file
+This issue should have been solve in mavros v0.23.2, it was found to be a Boost.ASIO error and should be fix in release > v1.12.0 ( >Boost 1.66).
+
+
+Contributing
+------------
+See [CONTRIBUTING.md][contr].
 
 
 Glossary
@@ -257,7 +262,7 @@ Links
 [apm]: http://ardupilot.com/
 [mlros]: https://github.com/mavlink/mavlink_ros
 [boost]: http://www.boost.org/
-[ml]: http://mavlink.org/mavlink/start
+[ml]: https://mavlink.io/en/
 [mlgbp]: https://github.com/mavlink/mavlink-gbp-release
 [iss35]: https://github.com/mavlink/mavros/issues/35
 [iss49]: https://github.com/mavlink/mavros/issues/49
@@ -266,6 +271,7 @@ Links
 [iss319]: https://github.com/mavlink/mavros/issues/319
 [iss321]: https://github.com/mavlink/mavros/issues/321
 [iss473]: https://github.com/mavlink/mavros/issues/473
+[iss856]: https://github.com/mavlink/mavros/issues/856
 [wiki]: http://wiki.ros.org/mavros
 [mrext]: https://github.com/mavlink/mavros/tree/master/mavros_extras
 [mlwiki]: http://wiki.ros.org/mavlink
@@ -274,3 +280,4 @@ Links
 [iss473rfc]: https://docs.google.com/document/d/1bDhaozrUu9F915T58WGzZeOM-McyU20dwxX-NRum1KA/edit
 [iss473table]: https://docs.google.com/spreadsheets/d/1LnsWTblU92J5_SMinTvBvHJWx6sqvzFa8SKbn8TXlnU/edit#gid=0
 [geolib]: https://geographiclib.sourceforge.io/
+[contr]: https://github.com/mavlink/mavros/blob/master/CONTRIBUTING.md

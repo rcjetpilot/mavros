@@ -5,15 +5,16 @@ project(mavros_extras)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  mavros
-  roscpp
-  mavros_msgs
-  sensor_msgs
   geometry_msgs
+  mavros
+  mavros_msgs
+  roscpp
+  sensor_msgs
   std_msgs
-  visualization_msgs
-  urdf
   tf
+  tf2_eigen
+  urdf
+  visualization_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -50,7 +51,7 @@ include(MavrosMavlink)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES
-  CATKIN_DEPENDS mavros mavros_msgs roscpp sensor_msgs geometry_msgs
+  CATKIN_DEPENDS geometry_msgs mavros mavros_msgs roscpp sensor_msgs std_msgs visualization_msgs
   DEPENDS Boost
 )
 
@@ -65,16 +66,26 @@ include_directories(
 
 add_library(mavros_extras
   src/plugins/adsb.cpp
+  src/plugins/cam_imu_sync.cpp
+  src/plugins/companion_process_status.cpp
+  src/plugins/debug_value.cpp
   src/plugins/distance_sensor.cpp
-  src/plugins/px4flow.cpp
-  src/plugins/mocap_pose_estimate.cpp
   src/plugins/fake_gps.cpp
+  src/plugins/gps_rtk.cpp
+  src/plugins/log_transfer.cpp
+  src/plugins/mocap_pose_estimate.cpp
+  src/plugins/obstacle_distance.cpp
+  src/plugins/odom.cpp
+  src/plugins/px4flow.cpp
+  src/plugins/rangefinder.cpp
+  src/plugins/trajectory.cpp
+  src/plugins/vibration.cpp
   src/plugins/vision_pose_estimate.cpp
   src/plugins/vision_speed_estimate.cpp
-  src/plugins/odom.cpp
-  src/plugins/vibration.cpp
-  src/plugins/cam_imu_sync.cpp
-  src/plugins/rangefinder.cpp
+  src/plugins/wheel_odometry.cpp
+)
+add_dependencies(mavros_extras
+  ${catkin_EXPORTED_TARGETS}
 )
 target_link_libraries(mavros_extras
   ${mavros_LIBRARIES}
@@ -112,7 +123,7 @@ install(PROGRAMS
 )
 
 ## Mark executables and/or libraries for installation
-install(TARGETS mavros_extras copter_visualization servo_state_publisher
+install(TARGETS copter_visualization mavros_extras servo_state_publisher
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
