@@ -34,7 +34,7 @@ namespace plugin {
 template <class D>
 class SetPositionTargetLocalNEDMixin {
 public:
-	//! Message specification: @p http://mavlink.org/messages/common#SET_POSITION_TARGET_LOCAL_NED
+	//! Message specification: @p https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_LOCAL_NED
 	void set_position_target_local_ned(uint32_t time_boot_ms, uint8_t coordinate_frame,
 			uint16_t type_mask,
 			Eigen::Vector3d p,
@@ -43,7 +43,7 @@ public:
 			float yaw, float yaw_rate)
 	{
 		mavros::UAS *m_uas_ = static_cast<D *>(this)->m_uas;
-		mavlink::common::msg::SET_POSITION_TARGET_LOCAL_NED sp;
+		mavlink::common::msg::SET_POSITION_TARGET_LOCAL_NED sp = {};
 
 		m_uas_->msg_set_target(sp);
 
@@ -68,7 +68,7 @@ public:
 		sp.afx = af.x();
 		sp.afy = af.y();
 		sp.afz = af.z();
-		// [[[end]]] (checksum: 6a9b9dacbcf85c5d428d754c20afe110)
+		// [[[end]]] (sum: apudrLz4XF)
 
 		UAS_FCU(m_uas_)->send_message_ignore_drop(sp);
 	}
@@ -80,7 +80,7 @@ public:
 template <class D>
 class SetPositionTargetGlobalIntMixin {
 public:
-	//! Message specification: @p http://mavlink.org/messages/common#SET_POSITION_TARGET_GLOBAL_INT
+	//! Message specification: @p https://mavlink.io/en/messages/common.html#SET_POSITION_TARGET_GLOBAL_INT
 	void set_position_target_global_int(uint32_t time_boot_ms, uint8_t coordinate_frame,
 			uint16_t type_mask,
 			int32_t lat_int, int32_t lon_int, float alt,
@@ -89,7 +89,7 @@ public:
 			float yaw, float yaw_rate)
 	{
 		mavros::UAS *m_uas_ = static_cast<D *>(this)->m_uas;
-		mavlink::common::msg::SET_POSITION_TARGET_GLOBAL_INT sp;
+		mavlink::common::msg::SET_POSITION_TARGET_GLOBAL_INT sp = {};
 
 		m_uas_->msg_set_target(sp);
 
@@ -114,7 +114,7 @@ public:
 		sp.afx = af.x();
 		sp.afy = af.y();
 		sp.afz = af.z();
-		// [[[end]]] (checksum: 30c9629ad309d488df1f63b683dac6a4)
+		// [[[end]]] (sum: MMlimtMJ1I)
 
 		UAS_FCU(m_uas_)->send_message_ignore_drop(sp);
 	}
@@ -126,7 +126,7 @@ public:
 template <class D>
 class SetAttitudeTargetMixin {
 public:
-	//! Message sepecification: @p http://mavlink.org/messages/common#SET_ATTITUDE_TARGET
+	//! Message sepecification: @p https://mavlink.io/en/messages/common.html#SET_ATTITUDE_TARGET
 	void set_attitude_target(uint32_t time_boot_ms,
 			uint8_t type_mask,
 			Eigen::Quaterniond orientation,
@@ -134,7 +134,7 @@ public:
 			float thrust)
 	{
 		mavros::UAS *m_uas_ = static_cast<D *>(this)->m_uas;
-		mavlink::common::msg::SET_ATTITUDE_TARGET sp;
+		mavlink::common::msg::SET_ATTITUDE_TARGET sp = {};
 
 		m_uas_->msg_set_target(sp);
 		mavros::ftf::quaternion_to_mavlink(orientation, sp.q);
@@ -151,7 +151,7 @@ public:
 		sp.body_roll_rate = body_rate.x();
 		sp.body_pitch_rate = body_rate.y();
 		sp.body_yaw_rate = body_rate.z();
-		// [[[end]]] (checksum: aa941484927bb7a7d39a2c31d08fcfc1)
+		// [[[end]]] (sum: qpQUhJJ7t6)
 
 		UAS_FCU(m_uas_)->send_message_ignore_drop(sp);
 	}

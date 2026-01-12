@@ -1,25 +1,12 @@
 # The location and information of an ADSB vehicle
 #
-# http://mavlink.org/messages/common#ADSB_VEHICLE
+# https://mavlink.io/en/messages/common.html#ADSB_VEHICLE
 
 # [[[cog:
-# from pymavlink.dialects.v20 import common
-#
-# def decl_enum(ename, pfx='', bsz=8):
-#     enum = sorted(common.enums[ename].items())
-#     enum.pop() # remove ENUM_END
-#
-#     cog.outl("# " + ename)
-#     for k, e in enum:
-#         sn = e.name[len(ename) + 1:]
-#         l = "uint{bsz} {pfx}{sn} = {k}".format(**locals())
-#         if e.description:
-#             l += ' ' * (40 - len(l)) + ' # ' + e.description
-#         cog.outl(l)
-#
-# decl_enum('ADSB_ALTITUDE_TYPE', 'ALT_')
-# decl_enum('ADSB_EMITTER_TYPE', 'EMITTER_')
-# decl_enum('ADSB_FLAGS', 'FLAG_', 16)
+# import mavros_cog
+# mavros_cog.idl_decl_enum('ADSB_ALTITUDE_TYPE', 'ALT_')
+# mavros_cog.idl_decl_enum('ADSB_EMITTER_TYPE', 'EMITTER_')
+# mavros_cog.idl_decl_enum('ADSB_FLAGS', 'FLAG_', 16)
 # ]]]
 # ADSB_ALTITUDE_TYPE
 uint8 ALT_PRESSURE_QNH = 0               # Altitude reported from a Baro source using QNH reference
@@ -53,7 +40,10 @@ uint16 FLAG_VALID_VELOCITY = 8
 uint16 FLAG_VALID_CALLSIGN = 16
 uint16 FLAG_VALID_SQUAWK = 32
 uint16 FLAG_SIMULATED = 64
-# [[[end]]] (checksum: e35e77be43548bd572a3cb24138fc2fd)
+uint16 FLAG_VERTICAL_VELOCITY_VALID = 128
+uint16 FLAG_BARO_VALID = 256
+uint16 FLAG_SOURCE_UAT = 32768
+# [[[end]]] (sum: o08qCBc5kh)
 
 std_msgs/Header header
 

@@ -19,7 +19,7 @@
 
 #include <array>
 #include <ros/ros.h>
-#include <pluginlib/class_loader.h>
+#include <pluginlib/class_loader.hpp>
 #include <mavconn/interface.h>
 #include <mavros/mavros_plugin.h>
 #include <mavros/mavlink_diag.h>
@@ -43,6 +43,9 @@ private:
 	ros::NodeHandle mavlink_nh;
 	// fcu_link stored in mav_uas
 	mavconn::MAVConnInterface::Ptr gcs_link;
+	bool gcs_quiet_mode;
+	ros::Time last_message_received_from_gcs;
+	ros::Duration conn_timeout;
 
 	ros::Publisher mavlink_pub;
 	ros::Subscriber mavlink_sub;

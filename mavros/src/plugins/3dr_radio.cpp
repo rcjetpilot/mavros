@@ -32,7 +32,7 @@ public:
 		low_rssi(0)
 	{ }
 
-	void initialize(UAS &uas_)
+	void initialize(UAS &uas_) override
 	{
 		PluginBase::initialize(uas_);
 
@@ -43,7 +43,7 @@ public:
 		enable_connection_cb();
 	}
 
-	Subscriptions get_subscriptions()
+	Subscriptions get_subscriptions() override
 	{
 		return {
 			make_handler(&TDRRadioPlugin::handle_radio_status),
@@ -156,5 +156,5 @@ private:
 }	// namespace std_plugins
 }	// namespace mavros
 
-#include <pluginlib/class_list_macros.h>
+#include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(mavros::std_plugins::TDRRadioPlugin, mavros::plugin::PluginBase)

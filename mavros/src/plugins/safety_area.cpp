@@ -32,7 +32,7 @@ public:
 		safety_nh("~safety_area")
 	{ }
 
-	void initialize(UAS &uas_)
+	void initialize(UAS &uas_) override
 	{
 		PluginBase::initialize(uas_);
 
@@ -70,7 +70,7 @@ public:
 		safetyarea_pub = safety_nh.advertise<geometry_msgs::PolygonStamped>("get",10);
 	}
 
-	Subscriptions get_subscriptions()
+	Subscriptions get_subscriptions() override
 	{
 		return {
 		       make_handler(&SafetyAreaPlugin::handle_safety_allowed_area)
@@ -126,7 +126,7 @@ private:
 		p1 = ftf::transform_frame_enu_ned(p1);
 		p2 = ftf::transform_frame_enu_ned(p2);
 
-		mavlink::common::msg::SAFETY_SET_ALLOWED_AREA s;
+		mavlink::common::msg::SAFETY_SET_ALLOWED_AREA s = {};
 		m_uas->msg_set_target(s);
 
 		// TODO: use enum from lib
@@ -143,7 +143,7 @@ private:
 		s.p2x = p2.x();
 		s.p2y = p2.y();
 		s.p2z = p2.z();
-		// [[[end]]] (checksum: c996a362f338fcc6b714c8be583c3be0)
+		// [[[end]]] (sum: yZajYvM4/M)
 
 		UAS_FCU(m_uas)->send_message_ignore_drop(s);
 	}
@@ -166,7 +166,7 @@ private:
 		// ]]]
 		Eigen::Vector3d p1(req->polygon.points[0].x, req->polygon.points[0].y, req->polygon.points[0].z);
 		Eigen::Vector3d p2(req->polygon.points[1].x, req->polygon.points[1].y, req->polygon.points[1].z);
-		// [[[end]]] (checksum: c3681d584e02f7d91d6b3b48f87b1771)
+		// [[[end]]] (sum: w2gdWE4C99)
 
 		send_safety_set_allowed_area(p1, p2);
 	}
@@ -174,5 +174,5 @@ private:
 }	// namespace std_plugins
 }	// namespace mavros
 
-#include <pluginlib/class_list_macros.h>
+#include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(mavros::std_plugins::SafetyAreaPlugin, mavros::plugin::PluginBase)

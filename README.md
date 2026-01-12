@@ -1,7 +1,6 @@
 MAVROS
 ======
-
-[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/mavlink/mavros?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/mavlink/mavros)](https://github.com/mavlink/mavros/releases)  [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/mavlink/mavros?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)  [![CI](https://github.com/mavlink/mavros/actions/workflows/main.yml/badge.svg)](https://github.com/mavlink/mavros/actions/workflows/main.yml)
 
 MAVLink extendable communication node for ROS.
 
@@ -12,6 +11,12 @@ MAVLink extendable communication node for ROS.
 - Since 2016-02-05 (v0.17) frame conversion changed again
 - Since 2016-06-22 (pre v0.18) Indigo and Jade separated from master to indigo-devel branch.
 - Since 2016-06-23 (0.18.0) support MAVLink 2.0 without signing.
+- Since 2017-08-23 (0.20.0) [GeographicLib][geolib] and it's datasets are required. Used to convert AMSL (FCU) and WGS84 (ROS) altitudes.
+- Since 2018-05-11 (0.25.0) support building master for Indigo and Jade stopped. Mainly because update of console-bridge package.
+- Since 2018-05-14 (0.25.1) support for Indigo returned. We use compatibility layer for console-bridge.
+- Since 2019-01-03 (0.28.0) support for Indigo by master not guaranteed. Consider update to more recent distro.
+- 2020-01-01 version 1.0.0 released, please see [#1369][iss1369] for reasons and its purpose.
+- 2021-05-28 version 2.0.0 released, it's the first alpha release for ROS2.
 
 
 mavros package
@@ -44,29 +49,27 @@ Please see [README][test] first!
 mavros\_msgs package
 --------------------
 
-This package contains messages and services used in mavros.
+This package contains messages and services used in MAVROS.
 
 
 Support forums and chats
 ------------------------
 
-Please ask your questions not related to bugs/feauture or requests on:
+Please ask your questions not related to bugs/feature or requests on:
 
-- [px4users Google Group (Mailing List) ](https://groups.google.com/forum/#!forum/px4users)
-- [Mavros on Gitter IM](https://gitter.im/mavlink/mavros)
-- [PX4/Firmware on Gitter IM](https://gitter.im/PX4/Firmware)
-- [ArduPilot/VisionProjects on Gitter IM](https://gitter.im/ArduPilot/ardupilot/VisionProjects)
+- [MAVROS discussion in Gitter IM](https://gitter.im/mavlink/mavros)
+- [PX4 Discuss Forum](https://discuss.px4.io/)
+- [PX4 Slack](https://slack.px4.io/)
+- [Ardupilot Discuss Forum](https://discuss.ardupilot.org/)
+- [ArduPilot/VisionProjects in Gitter IM](https://gitter.im/ArduPilot/ardupilot/VisionProjects)
 
-We'd like to keep the project bugtracker as free as possible, so please contact via the above methods. You can also PM us via Gitter.
+We'd like to keep the project bug tracker as free as possible, so please contact via the above methods. You can also PM us via Gitter and the PX4 Slack.
 
 
 CI Statuses
 -----------
 
-  - ROS Indigo:  [![Build Status](http://build.ros.org/buildStatus/icon?job=Idev__mavros__ubuntu_trusty_amd64)](http://build.ros.org/job/Idev__mavros__ubuntu_trusty_amd64/)
-  - ROS Jade:    [![Build Status](http://build.ros.org/buildStatus/icon?job=Jdev__mavros__ubuntu_trusty_amd64)](http://build.ros.org/job/Jdev__mavros__ubuntu_trusty_amd64/)
-  - ROS Kinetic: [![Build Status](http://build.ros.org/buildStatus/icon?job=Kdev__mavros__ubuntu_xenial_amd64)](http://build.ros.org/job/Kdev__mavros__ubuntu_xenial_amd64/)
-  - Travis master on Indigo & Jade: [![travis status](https://travis-ci.org/mavlink/mavros.svg?branch=master)](https://travis-ci.org/mavlink/mavros)
+  - ROS Noetic: [![Build Status](http://build.ros.org/buildStatus/icon?job=Ndev__mavros__ubuntu_focal_amd64)](http://build.ros.org/job/Ndev__mavros__ubuntu_focal_amd64/)
 
 
 [mrrm]: https://github.com/mavlink/mavros/blob/master/mavros/README.md
@@ -74,3 +77,5 @@ CI Statuses
 [libmc]: https://github.com/mavlink/mavros/blob/master/libmavconn/README.md
 [test]: https://github.com/mavlink/mavros/blob/master/test_mavros/README.md
 [inst]: https://github.com/mavlink/mavros/blob/master/mavros/README.md#installation
+[geolib]: https://geographiclib.sourceforge.io/
+[iss1369]: https://github.com/mavlink/mavros/issues/1369

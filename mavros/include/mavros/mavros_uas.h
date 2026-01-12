@@ -20,8 +20,11 @@
 #include <array>
 #include <mutex>
 #include <atomic>
+#include <type_traits>
+#include <eigen_conversions/eigen_msg.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/static_transform_broadcaster.h>
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <mavconn/interface.h>
 #include <mavros/utils.h>
@@ -36,13 +39,13 @@ namespace mavros {
 /**
  * @brief helper accessor to FCU link interface
  */
-#define UAS_FCU(uasobjptr)				\
+#define UAS_FCU(uasobjptr)                              \
 	((uasobjptr)->fcu_link)
 
 /**
  * @brief helper accessor to diagnostic updater
  */
-#define UAS_DIAG(uasobjptr)				\
+#define UAS_DIAG(uasobjptr)                             \
 	((uasobjptr)->diag_updater)
 
 
@@ -63,16 +66,19 @@ namespace mavros {
  */
 class UAS {
 public:
+	// common enums used by UAS
+	using MAV_TYPE = mavlink::minimal::MAV_TYPE;
+	using MAV_AUTOPILOT = mavlink::minimal::MAV_AUTOPILOT;
+	using MAV_MODE_FLAG = mavlink::minimal::MAV_MODE_FLAG;
+	using MAV_STATE = mavlink::minimal::MAV_STATE;
+	using MAV_CAP = mavlink::common::MAV_PROTOCOL_CAPABILITY;
+	using timesync_mode = utils::timesync_mode;
+
+	// other UAS aliases
 	using ConnectionCb = std::function<void(bool)>;
+	using CapabilitiesCb = std::function<void(MAV_CAP)>;
 	using lock_guard = std::lock_guard<std::recursive_mutex>;
 	using unique_lock = std::unique_lock<std::recursive_mutex>;
-
-	// common enums used by UAS
-	using MAV_TYPE = mavlink::common::MAV_TYPE;
-	using MAV_AUTOPILOT = mavlink::common::MAV_AUTOPILOT;
-	using MAV_MODE_FLAG = mavlink::common::MAV_MODE_FLAG;
-	using MAV_STATE = mavlink::common::MAV_STATE;
-	using timesync_mode = utils::timesync_mode;
 
 	UAS();
 	~UAS() {};
@@ -169,31 +175,57 @@ public:
 
 	/* -*- IMU data -*- */
 
-	//! Store IMU data
-	void update_attitude_imu(sensor_msgs::Imu::Ptr &imu);
+	/**
+	 * @brief Store IMU data [ENU]
+	 */
+	void update_attitude_imu_enu(sensor_msgs::Imu::Ptr &imu);
 
-	//! Get IMU data
-	sensor_msgs::Imu::Ptr get_attitude_imu();
+	/**
+	 * @brief Store IMU data [NED]
+	 */
+	void update_attitude_imu_ned(sensor_msgs::Imu::Ptr &imu);
+
+	/**
+	 * @brief Get IMU data [ENU]
+	 */
+	sensor_msgs::Imu::Ptr get_attitude_imu_enu();
+
+	/**
+	 * @brief Get IMU data [NED]
+	 */
+	sensor_msgs::Imu::Ptr get_attitude_imu_ned();
 
 	/**
 	 * @brief Get Attitude orientation quaternion
 	 * @return orientation quaternion [ENU]
 	 */
-	geometry_msgs::Quaternion get_attitude_orientation();
+	geometry_msgs::Quaternion get_attitude_orientation_enu();
+
+	/**
+	 * @brief Get Attitude orientation quaternion
+	 * @return orientation quaternion [NED]
+	 */
+	geometry_msgs::Quaternion get_attitude_orientation_ned();
 
 	/**
 	 * @brief Get angular velocity from IMU data
-	 * @return vector3
+	 * @return vector3 [ENU]
 	 */
-	geometry_msgs::Vector3 get_attitude_angular_velocity();
+	geometry_msgs::Vector3 get_attitude_angular_velocity_enu();
+
+	/**
+	 * @brief Get angular velocity from IMU data
+	 * @return vector3 [NED]
+	 */
+	geometry_msgs::Vector3 get_attitude_angular_velocity_ned();
 
 
 	/* -*- GPS data -*- */
 
 	//! Store GPS RAW data
 	void update_gps_fix_epts(sensor_msgs::NavSatFix::Ptr &fix,
-			float eph, float epv,
-			int fix_type, int satellites_visible);
+		float eph, float epv,
+		int fix_type, int satellites_visible);
 
 	//! Returns EPH, EPV, Fix type and satellites visible
 	void get_gps_epts(float &eph, float &epv, int &fix_type, int &satellites_visible);
@@ -241,6 +273,26 @@ public:
 	tf2_ros::Buffer tf2_buffer;
 	tf2_ros::TransformListener tf2_listener;
 	tf2_ros::TransformBroadcaster tf2_broadcaster;
+	tf2_ros::StaticTransformBroadcaster tf2_static_broadcaster;
+
+	/**
+	 * @brief Add static transform. To publish all static transforms at once, we stack them in a std::vector.
+	 *
+	 * @param frame_id    parent frame for transform
+	 * @param child_id    child frame for transform
+	 * @param tr          transform
+	 * @param vector      vector of transforms
+	 */
+	void add_static_transform(const std::string &frame_id, const std::string &child_id, const Eigen::Affine3d &tr, std::vector<geometry_msgs::TransformStamped>& vector);
+
+	/**
+	 * @brief Publishes static transform.
+	 *
+	 * @param frame_id    parent frame for transform
+	 * @param child_id    child frame for transform
+	 * @param tr          transform
+	 */
+	void publish_static_transform(const std::string &frame_id, const std::string &child_id, const Eigen::Affine3d &tr);
 
 	/* -*- time sync -*- */
 
@@ -262,7 +314,43 @@ public:
 
 	/* -*- autopilot version -*- */
 	uint64_t get_capabilities();
+
+	/**
+	 * @brief Function to check if the flight controller has a capability
+	 *
+	 * @param capabilities can accept a multiple capability params either in enum or int from
+	 */
+	template<typename T>
+	bool has_capability(T capability){
+		static_assert(std::is_enum<T>::value, "Only query capabilities using the UAS::MAV_CAP enum.");
+		return get_capabilities() & utils::enum_value(capability);
+	}
+
+	/**
+	 * @brief Function to check if the flight controller has a set of capabilities
+	 *
+	 * @param capabilities can accept a multiple capability params either in enum or int from
+	 */
+
+	template<typename ... Ts>
+	bool has_capabilities(Ts ... capabilities){
+		bool ret = true;
+		std::initializer_list<bool> capabilities_list{has_capability<Ts>(capabilities) ...};
+		for (auto has_cap : capabilities_list) ret &= has_cap;
+		return ret;
+	}
+
+	/**
+	 * @brief Update the capabilities if they've changed every VERSION/timeout
+	 */
 	void update_capabilities(bool known, uint64_t caps = 0);
+
+	/**
+	 * @brief Adds a function to the capabilities callback queue
+	 *
+	 * @param cb A void function that takes a single mavlink::common::MAV_PROTOCOL_CAPABILITY(MAV_CAP) param
+	 */
+	void add_capabilities_change_handler(CapabilitiesCb cb);
 
 	/**
 	 * @brief Compute FCU message time from time_boot_ms or time_usec field
@@ -356,6 +444,26 @@ public:
 	 */
 	bool cmode_from_str(std::string cmode_str, uint32_t &custom_mode);
 
+	inline void set_base_link_frame_id(const std::string frame_id) {
+		base_link_frame_id = frame_id;
+	}
+	inline void set_odom_frame_id(const std::string frame_id) {
+		odom_frame_id = frame_id;
+	}
+	inline void set_map_frame_id(const std::string frame_id) {
+		map_frame_id = frame_id;
+	}
+	inline std::string get_base_link_frame_id() {
+		return base_link_frame_id;
+	}
+	inline std::string get_odom_frame_id() {
+		return odom_frame_id;
+	}
+	inline std::string get_map_frame_id() {
+		return map_frame_id;
+	}
+	void setup_static_tf();
+
 private:
 	std::recursive_mutex mutex;
 
@@ -368,8 +476,10 @@ private:
 
 	std::atomic<bool> connected;
 	std::vector<ConnectionCb> connection_cb_vec;
+	std::vector<CapabilitiesCb> capabilities_cb_vec;
 
-	sensor_msgs::Imu::Ptr imu_data;
+	sensor_msgs::Imu::Ptr imu_enu_data;
+	sensor_msgs::Imu::Ptr imu_ned_data;
 
 	sensor_msgs::NavSatFix::Ptr gps_fix;
 	float gps_eph;
@@ -382,5 +492,7 @@ private:
 
 	std::atomic<bool> fcu_caps_known;
 	std::atomic<uint64_t> fcu_capabilities;
+
+	std::string base_link_frame_id, odom_frame_id, map_frame_id;
 };
 }	// namespace mavros

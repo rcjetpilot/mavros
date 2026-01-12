@@ -204,15 +204,15 @@ public:
 		is_error(false),
 		r_errno(0),
 		list_offset(0),
-		read_offset(0),
-		write_offset(0),
 		open_size(0),
 		read_size(0),
+		read_offset(0),
 		read_buffer {},
+		write_offset(0),
 		checksum_crc32(0)
 	{ }
 
-	void initialize(UAS &uas_)
+	void initialize(UAS &uas_) override
 	{
 		PluginBase::initialize(uas_);
 
@@ -234,7 +234,7 @@ public:
 		checksum_srv = ftp_nh.advertiseService("checksum", &FTPPlugin::checksum_cb, this);
 	}
 
-	Subscriptions get_subscriptions()
+	Subscriptions get_subscriptions() override
 	{
 		return {
 			make_handler(&FTPPlugin::handle_file_transfer_protocol),
@@ -409,7 +409,7 @@ private:
 
 		ROS_DEBUG_NAMED("ftp", "FTP:m: ACK List SZ(%u) OFF(%u)", hdr->size, hdr->offset);
 		if (hdr->offset != list_offset) {
-			ROS_ERROR_NAMED("ftp", "FTP: Wring list offset, req %u, ret %u",
+			ROS_ERROR_NAMED("ftp", "FTP: Wrong list offset, req %u, ret %u",
 					list_offset, hdr->offset);
 			go_idle(true, EBADE);
 			return;
@@ -1071,5 +1071,5 @@ private:
 }	// namespace std_plugins
 }	// namespace mavros
 
-#include <pluginlib/class_list_macros.h>
+#include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(mavros::std_plugins::FTPPlugin, mavros::plugin::PluginBase)

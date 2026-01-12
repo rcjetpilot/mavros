@@ -119,6 +119,13 @@ public:
 	MAVConnInterface(uint8_t system_id = 1, uint8_t component_id = MAV_COMP_ID_UDP_BRIDGE);
 
 	/**
+	 * @brief Establish connection, automatically called by open_url()
+	 */
+	virtual void connect(
+			const ReceivedCb &cb_handle_message,
+			const ClosedCb &cb_handle_closed_port = ClosedCb()) = 0;
+
+	/**
 	 * @brief Close connection.
 	 */
 	virtual void close() = 0;
@@ -144,7 +151,22 @@ public:
 	 * @throws std::length_error  On exceeding Tx queue limit (MAX_TXQ_SIZE)
 	 * @param[in] &message  not changed
 	 */
-	virtual void send_message(const mavlink::Message &message) = 0;
+	virtual void send_message(const mavlink::Message &message) {
+		send_message(message, this->comp_id);
+	}
+
+	/**
+	 * @brief Send message (child of mavlink::Message)
+	 *
+	 * Does serialization inside.
+	 * System ID = from this object.
+	 * Component ID passed by argument.
+	 *
+	 * @throws std::length_error  On exceeding Tx queue limit (MAX_TXQ_SIZE)
+	 * @param[in] &message  not changed
+	 * @param[in] src_compid  sets the component ID of the message source
+	 */
+	virtual void send_message(const mavlink::Message &message, const uint8_t src_compid) = 0;
 
 	/**
 	 * @brief Send raw bytes (for some quirks)
@@ -159,8 +181,20 @@ public:
 
 	/**
 	 * @brief Send message and ignore possible drop due to Tx queue limit
+	 *
+	 * System and Component ID = from this object.
 	 */
-	void send_message_ignore_drop(const mavlink::Message &message);
+	void send_message_ignore_drop(const mavlink::Message &message) {
+		send_message_ignore_drop(message, this->comp_id);
+	}
+
+	/**
+	 * @brief Send message and ignore possible drop due to Tx queue limit
+	 *
+	 * System ID = from this object.
+	 * Component ID passed by argument.
+	 */
+	void send_message_ignore_drop(const mavlink::Message &message, const uint8_t src_compid);
 
 	//! Message receive callback
 	ReceivedCb message_received_cb;
@@ -207,8 +241,20 @@ public:
 	 * @return @a Ptr to constructed interface class,
 	 *         or throw @a DeviceError if error occured.
 	 */
-	static Ptr open_url(std::string url,
-			uint8_t system_id = 1, uint8_t component_id = MAV_COMP_ID_UDP_BRIDGE);
+	static Ptr open_url(
+			std::string url,
+			uint8_t system_id = 1,
+			uint8_t component_id = MAV_COMP_ID_UDP_BRIDGE,
+			const ReceivedCb &cb_handle_message = ReceivedCb(),
+			const ClosedCb &cb_handle_closed_port = ClosedCb());
+
+	/**
+	 * @brief version of open_url() which do not perform connect()
+	 */
+	static Ptr open_url_no_connect(
+			std::string url,
+			uint8_t system_id = 1,
+			uint8_t component_id = MAV_COMP_ID_UDP_BRIDGE);
 
 	static std::vector<std::string> get_known_dialects();
 
@@ -228,7 +274,7 @@ protected:
 	size_t conn_id;
 
 	inline mavlink::mavlink_status_t *get_status_p() {
-		return &m_status;
+		return &m_parse_status;
 	}
 
 	inline mavlink::mavlink_message_t *get_buffer_p() {
@@ -250,8 +296,9 @@ protected:
 private:
 	friend const mavlink::mavlink_msg_entry_t* mavlink::mavlink_get_msg_entry(uint32_t msgid);
 
-	mavlink::mavlink_status_t m_status;
+	mavlink::mavlink_status_t m_parse_status;
 	mavlink::mavlink_message_t m_buffer;
+	mavlink::mavlink_status_t m_mavlink_status;
 
 	std::atomic<size_t> tx_total_bytes, rx_total_bytes;
 	std::recursive_mutex iostat_mutex;

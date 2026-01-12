@@ -49,12 +49,15 @@ public:
 	 */
 	explicit MAVConnTCPClient(uint8_t system_id, uint8_t component_id,
 			boost::asio::io_service &server_io);
-	~MAVConnTCPClient();
+	virtual ~MAVConnTCPClient();
 
+	void connect(
+			const ReceivedCb &cb_handle_message,
+			const ClosedCb &cb_handle_closed_port = ClosedCb()) override;
 	void close() override;
 
 	void send_message(const mavlink::mavlink_message_t *message) override;
-	void send_message(const mavlink::Message &message) override;
+	void send_message(const mavlink::Message &message, const uint8_t source_compid) override;
 	void send_bytes(const uint8_t *bytes, size_t length) override;
 
 	inline bool is_open() override {
@@ -69,6 +72,8 @@ private:
 
 	boost::asio::ip::tcp::socket socket;
 	boost::asio::ip::tcp::endpoint server_ep;
+
+	std::atomic<bool> is_destroying;
 
 	std::atomic<bool> tx_in_progress;
 	std::deque<MsgBuffer> tx_q;
@@ -101,12 +106,15 @@ public:
 	 */
 	MAVConnTCPServer(uint8_t system_id = 1, uint8_t component_id = MAV_COMP_ID_UDP_BRIDGE,
 			std::string bind_host = DEFAULT_BIND_HOST, unsigned short bind_port = DEFAULT_BIND_PORT);
-	~MAVConnTCPServer();
+	virtual ~MAVConnTCPServer();
 
+	void connect(
+			const ReceivedCb &cb_handle_message,
+			const ClosedCb &cb_handle_closed_port = ClosedCb()) override;
 	void close() override;
 
 	void send_message(const mavlink::mavlink_message_t *message) override;
-	void send_message(const mavlink::Message &message) override;
+	void send_message(const mavlink::Message &message, const uint8_t source_compid) override;
 	void send_bytes(const uint8_t *bytes, size_t length) override;
 
 	mavlink::mavlink_status_t get_status() override;
@@ -123,6 +131,8 @@ private:
 	boost::asio::ip::tcp::acceptor acceptor;
 	boost::asio::ip::tcp::endpoint bind_ep;
 
+	std::atomic<bool> is_destroying;
+
 	std::list<std::shared_ptr<MAVConnTCPClient> > client_list;
 	std::recursive_mutex mutex;
 
@@ -130,7 +140,5 @@ private:
 
 	// client slots
 	void client_closed(std::weak_ptr<MAVConnTCPClient> weak_instp);
-	void recv_message(const mavlink::mavlink_message_t *message, const Framing framing);
 };
 }	// namespace mavconn
-

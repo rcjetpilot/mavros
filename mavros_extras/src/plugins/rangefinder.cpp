@@ -31,17 +31,17 @@ public:
 		rangefinder_nh("~rangefinder")
 	{ }
 
-	void initialize(UAS &uas_)
+	void initialize(UAS &uas_) override
 	{
 		PluginBase::initialize(uas_);
 
 		rangefinder_pub = rangefinder_nh.advertise<sensor_msgs::Range>("rangefinder", 10);
 	}
 
-	Subscriptions get_subscriptions()
+	Subscriptions get_subscriptions() override
 	{
 		return {
-			       make_handler(&RangefinderPlugin::handle_rangefinder)
+			make_handler(&RangefinderPlugin::handle_rangefinder)
 		};
 	}
 
@@ -66,5 +66,5 @@ private:
 }	// namespace extra_plugins
 }	// namespace mavros
 
-#include <pluginlib/class_list_macros.h>
+#include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(mavros::extra_plugins::RangefinderPlugin, mavros::plugin::PluginBase)

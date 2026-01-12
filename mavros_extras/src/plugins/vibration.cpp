@@ -32,19 +32,19 @@ public:
 		vibe_nh("~vibration")
 	{ }
 
-	void initialize(UAS &uas_)
+	void initialize(UAS &uas_) override
 	{
 		PluginBase::initialize(uas_);
 
-		vibe_nh.param<std::string>("frame_id", frame_id, "vibration");
+		vibe_nh.param<std::string>("frame_id", frame_id, "base_link");
 
 		vibration_pub = vibe_nh.advertise<mavros_msgs::Vibration>("raw/vibration", 10);
 	}
 
-	Subscriptions get_subscriptions()
+	Subscriptions get_subscriptions() override
 	{
 		return {
-			       make_handler(&VibrationPlugin::handle_vibration)
+			make_handler(&VibrationPlugin::handle_vibration)
 		};
 	}
 
@@ -74,5 +74,5 @@ private:
 }	// namespace extra_plugins
 }	// namespace mavros
 
-#include <pluginlib/class_list_macros.h>
+#include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(mavros::extra_plugins::VibrationPlugin, mavros::plugin::PluginBase)

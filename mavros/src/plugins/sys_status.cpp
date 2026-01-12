@@ -8,6 +8,7 @@
  */
 /*
  * Copyright 2013,2014,2015,2016 Vladimir Ermakov.
+ * Copyright 2022 Dr.-Ing. Amilcar do Carmo Lucas, IAV GmbH.
  *
  * This file is part of the mavros package and subject to the license terms
  * in the top-level LICENSE file of the mavros repository.
@@ -17,10 +18,17 @@
 #include <mavros/mavros_plugin.h>
 
 #include <mavros_msgs/State.h>
+#include <mavros_msgs/EstimatorStatus.h>
 #include <mavros_msgs/ExtendedState.h>
 #include <mavros_msgs/StreamRate.h>
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/CommandLong.h>
+#include <mavros_msgs/StatusText.h>
+#include <mavros_msgs/VehicleInfo.h>
+#include <mavros_msgs/VehicleInfoGet.h>
+#include <mavros_msgs/MessageInterval.h>
+#include <mavros_msgs/SysStatus.h>
+
 
 #ifdef HAVE_SENSOR_MSGS_BATTERYSTATE_MSG
 #include <sensor_msgs/BatteryState.h>
@@ -32,15 +40,17 @@ using BatteryMsg = mavros_msgs::BatteryStatus;
 
 namespace mavros {
 namespace std_plugins {
-using mavlink::common::MAV_TYPE;
-using mavlink::common::MAV_AUTOPILOT;
-using mavlink::common::MAV_STATE;
+using mavlink::minimal::MAV_TYPE;
+using mavlink::minimal::MAV_AUTOPILOT;
+using mavlink::minimal::MAV_STATE;
 using utils::enum_value;
+
+#define MAX_NR_BATTERY_STATUS 10
 
 /**
  * Heartbeat status publisher
  *
- * Based on diagnistic_updater::FrequencyStatus
+ * Based on diagnostic_updater::FrequencyStatus
  */
 class HeartbeatStatus : public diagnostic_updater::DiagnosticTask
 {
@@ -100,16 +110,16 @@ public:
 		hist_indx_ = (hist_indx_ + 1) % window_size_;
 
 		if (events == 0) {
-			stat.summary(2, "No events recorded.");
+			stat.summary(diagnostic_msgs::DiagnosticStatus::ERROR, "No events recorded.");
 		}
 		else if (freq < min_freq_ * (1 - tolerance_)) {
-			stat.summary(1, "Frequency too low.");
+			stat.summary(diagnostic_msgs::DiagnosticStatus::WARN, "Frequency too low.");
 		}
 		else if (freq > max_freq_ * (1 + tolerance_)) {
-			stat.summary(1, "Frequency too high.");
+			stat.summary(diagnostic_msgs::DiagnosticStatus::WARN, "Frequency too high.");
 		}
 		else {
-			stat.summary(0, "Normal");
+			stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Normal");
 		}
 
 		stat.addf("Heartbeats since startup", "%d", count_);
@@ -160,13 +170,13 @@ public:
 
 		if ((last_st.onboard_control_sensors_health & last_st.onboard_control_sensors_enabled)
 				!= last_st.onboard_control_sensors_enabled)
-			stat.summary(2, "Sensor helth");
+			stat.summary(diagnostic_msgs::DiagnosticStatus::ERROR, "Sensor health");
 		else
-			stat.summary(0, "Normal");
+			stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Normal");
 
 		stat.addf("Sensor present", "0x%08X", last_st.onboard_control_sensors_present);
 		stat.addf("Sensor enabled", "0x%08X", last_st.onboard_control_sensors_enabled);
-		stat.addf("Sensor helth", "0x%08X", last_st.onboard_control_sensors_health);
+		stat.addf("Sensor health", "0x%08X", last_st.onboard_control_sensors_health);
 
 		using STS = mavlink::common::MAV_SYS_STATUS_SENSOR;
 
@@ -189,8 +199,9 @@ public:
 		//     if sts[0].isdigit():
 		//         sts = 'SENSOR_' + sts
 		//
-		//     cog.outl("if (last_st.onboard_control_sensors_enabled & enum_value(STS::%s))" % sts)
-		//     cog.outl("\tstat.add(\"%s\", (last_st.onboard_control_sensors_health & enum_value(STS::%s)) ? \"Ok\" : \"Fail\");" % (desc, sts))
+		//     cog.outl(f"""\
+		//     if (last_st.onboard_control_sensors_enabled & enum_value(STS::{sts}))
+		//     \tstat.add("{desc.strip()}", (last_st.onboard_control_sensors_health & enum_value(STS::{sts})) ? "Ok" : "Fail");""")
 		// ]]]
 		if (last_st.onboard_control_sensors_enabled & enum_value(STS::SENSOR_3D_GYRO))
 			stat.add("3D gyro", (last_st.onboard_control_sensors_health & enum_value(STS::SENSOR_3D_GYRO)) ? "Ok" : "Fail");
@@ -225,7 +236,7 @@ public:
 		if (last_st.onboard_control_sensors_enabled & enum_value(STS::MOTOR_OUTPUTS))
 			stat.add("motor outputs / control", (last_st.onboard_control_sensors_health & enum_value(STS::MOTOR_OUTPUTS)) ? "Ok" : "Fail");
 		if (last_st.onboard_control_sensors_enabled & enum_value(STS::RC_RECEIVER))
-			stat.add("rc receiver", (last_st.onboard_control_sensors_health & enum_value(STS::RC_RECEIVER)) ? "Ok" : "Fail");
+			stat.add("RC receiver", (last_st.onboard_control_sensors_health & enum_value(STS::RC_RECEIVER)) ? "Ok" : "Fail");
 		if (last_st.onboard_control_sensors_enabled & enum_value(STS::SENSOR_3D_GYRO2))
 			stat.add("2nd 3D gyro", (last_st.onboard_control_sensors_health & enum_value(STS::SENSOR_3D_GYRO2)) ? "Ok" : "Fail");
 		if (last_st.onboard_control_sensors_enabled & enum_value(STS::SENSOR_3D_ACCEL2))
@@ -242,7 +253,19 @@ public:
 			stat.add("Motors are reversed", (last_st.onboard_control_sensors_health & enum_value(STS::REVERSE_MOTOR)) ? "Ok" : "Fail");
 		if (last_st.onboard_control_sensors_enabled & enum_value(STS::LOGGING))
 			stat.add("Logging", (last_st.onboard_control_sensors_health & enum_value(STS::LOGGING)) ? "Ok" : "Fail");
-		// [[[end]]] (checksum: ff583cfb8c621a8f7ac2f20aaf2e0ba9)
+		if (last_st.onboard_control_sensors_enabled & enum_value(STS::BATTERY))
+			stat.add("Battery", (last_st.onboard_control_sensors_health & enum_value(STS::BATTERY)) ? "Ok" : "Fail");
+		if (last_st.onboard_control_sensors_enabled & enum_value(STS::PROXIMITY))
+			stat.add("Proximity", (last_st.onboard_control_sensors_health & enum_value(STS::PROXIMITY)) ? "Ok" : "Fail");
+		if (last_st.onboard_control_sensors_enabled & enum_value(STS::SATCOM))
+			stat.add("Satellite Communication", (last_st.onboard_control_sensors_health & enum_value(STS::SATCOM)) ? "Ok" : "Fail");
+		if (last_st.onboard_control_sensors_enabled & enum_value(STS::PREARM_CHECK))
+			stat.add("pre-arm check status. Always healthy when armed", (last_st.onboard_control_sensors_health & enum_value(STS::PREARM_CHECK)) ? "Ok" : "Fail");
+		if (last_st.onboard_control_sensors_enabled & enum_value(STS::OBSTACLE_AVOIDANCE))
+			stat.add("Avoidance/collision prevention", (last_st.onboard_control_sensors_health & enum_value(STS::OBSTACLE_AVOIDANCE)) ? "Ok" : "Fail");
+		if (last_st.onboard_control_sensors_enabled & enum_value(STS::PROPULSION))
+			stat.add("propulsion (actuator, esc, motor or propellor)", (last_st.onboard_control_sensors_health & enum_value(STS::PROPULSION)) ? "Ok" : "Fail");
+		// [[[end]]] (sum: 8pA8+wzE2i)
 
 		stat.addf("CPU Load (%)", "%.1f", last_st.load / 10.0);
 		stat.addf("Drop rate (%)", "%.1f", last_st.drop_rate_comm / 10.0);
@@ -265,13 +288,35 @@ private:
 class BatteryStatusDiag : public diagnostic_updater::DiagnosticTask
 {
 public:
-	BatteryStatusDiag(const std::string &name) :
+	explicit BatteryStatusDiag(const std::string &name) :
 		diagnostic_updater::DiagnosticTask(name),
-		voltage(-1.0),
-		current(0.0),
-		remaining(0.0),
-		min_voltage(6)
+		voltage(-1.0f),
+		current(0.0f),
+		remaining(0.0f),
+		min_voltage(6.0f)
 	{ }
+
+	// Move constructor, required to dynamically create an array of instances of this class
+	// because it contains an unique mutex object
+	BatteryStatusDiag(BatteryStatusDiag&& other) noexcept :
+		diagnostic_updater::DiagnosticTask(""),
+		voltage(-1.0f),
+		current(0.0f),
+		remaining(0.0f),
+		min_voltage(6.0f)
+	{
+		*this = std::move(other);
+	}
+
+	// Move assignment operator, required to dynamically create an array of instances of this class
+	// because it contains an unique mutex object
+	BatteryStatusDiag& operator=(BatteryStatusDiag&& other) noexcept {
+		if (this != &other)
+		{
+			*this = std::move(other);
+		}
+		return *this;
+	}
 
 	void set_min_voltage(float volt) {
 		std::lock_guard<std::mutex> lock(mutex);
@@ -285,20 +330,32 @@ public:
 		remaining = rem;
 	}
 
+	void setcell_v(const std::vector<float> voltages) {
+		std::lock_guard<std::mutex> lock(mutex);
+		cell_voltage = voltages;
+	}
+
 	void run(diagnostic_updater::DiagnosticStatusWrapper &stat)
 	{
 		std::lock_guard<std::mutex> lock(mutex);
 
-		if (voltage < 0)
-			stat.summary(2, "No data");
+		if (voltage < 0.0f)
+			stat.summary(diagnostic_msgs::DiagnosticStatus::ERROR, "No data");
 		else if (voltage < min_voltage)
-			stat.summary(1, "Low voltage");
+			stat.summary(diagnostic_msgs::DiagnosticStatus::WARN, "Low voltage");
 		else
-			stat.summary(0, "Normal");
+			stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Normal");
 
 		stat.addf("Voltage", "%.2f", voltage);
 		stat.addf("Current", "%.1f", current);
-		stat.addf("Remaining", "%.1f", remaining * 100);
+		stat.addf("Remaining", "%.1f", remaining * 100.0f);
+		const int nr_cells = cell_voltage.size();
+		if (nr_cells > 1)
+		{
+			for (int i = 1; i <= nr_cells ; ++i) {
+				stat.addf(utils::format("Cell %u", i), "%.2f", cell_voltage[i-1]);
+			}
+		}
 	}
 
 private:
@@ -307,6 +364,7 @@ private:
 	float current;
 	float remaining;
 	float min_voltage;
+	std::vector<float> cell_voltage;
 };
 
 
@@ -318,34 +376,48 @@ class MemInfo : public diagnostic_updater::DiagnosticTask
 public:
 	MemInfo(const std::string &name) :
 		diagnostic_updater::DiagnosticTask(name),
-		freemem(-1),
-		brkval(0)
+		freemem(UINT32_MAX),
+		brkval(0),
+		last_rcd(0)
 	{ }
 
-	void set(uint16_t f, uint16_t b) {
+	void set(uint32_t f, uint16_t b) {
 		freemem = f;
 		brkval = b;
+		last_rcd = ros::Time::now().toNSec();
 	}
 
 	void run(diagnostic_updater::DiagnosticStatusWrapper &stat)
 	{
-		ssize_t freemem_ = freemem;
+		// access atomic variables just once
+		size_t freemem_ = freemem;
 		uint16_t brkval_ = brkval;
+		ros::Time last_rcd_;
+		last_rcd_.fromNSec(last_rcd.load());
+		constexpr int timeout = 10.0; // seconds
+		const ros::Duration timeout_duration = ros::Duration(timeout);
 
-		if (freemem < 0)
-			stat.summary(2, "No data");
-		else if (freemem < 200)
-			stat.summary(1, "Low mem");
-		else
-			stat.summary(0, "Normal");
-
+		// summarize the results
+		if (last_rcd_.isZero()) {
+			stat.summary(diagnostic_msgs::DiagnosticStatus::ERROR, "Not initialised");
+		} else if (ros::Time::now() - last_rcd_ > timeout_duration) {
+			stat.summary(diagnostic_msgs::DiagnosticStatus::STALE, "Not received for more than " + std::to_string(timeout) + "s");
+		} else {
+			if (freemem == UINT32_MAX)
+				stat.summary(diagnostic_msgs::DiagnosticStatus::ERROR, "No data");
+			else if (freemem < 200)
+				stat.summary(diagnostic_msgs::DiagnosticStatus::WARN, "Low mem");
+			else
+				stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Normal");
+		}
 		stat.addf("Free memory (B)", "%zd", freemem_);
 		stat.addf("Heap top", "0x%04X", brkval_);
 	}
 
 private:
-	std::atomic<ssize_t> freemem;
+	std::atomic<size_t> freemem;
 	std::atomic<uint16_t> brkval;
+	std::atomic<uint64_t> last_rcd;
 };
 
 
@@ -359,30 +431,38 @@ public:
 		diagnostic_updater::DiagnosticTask(name),
 		vcc(-1.0),
 		i2cerr(0),
-		i2cerr_last(0)
+		i2cerr_last(0),
+		last_rcd(0)
 	{ }
 
 	void set(uint16_t v, uint8_t e) {
 		std::lock_guard<std::mutex> lock(mutex);
-		vcc = v / 1000.0;
+		vcc = v * 0.001f;
 		i2cerr = e;
+		last_rcd = ros::Time::now();
 	}
 
 	void run(diagnostic_updater::DiagnosticStatusWrapper &stat)
 	{
 		std::lock_guard<std::mutex> lock(mutex);
-
-		if (vcc < 0)
-			stat.summary(2, "No data");
-		else if (vcc < 4.5)
-			stat.summary(1, "Low voltage");
-		else if (i2cerr != i2cerr_last) {
-			i2cerr_last = i2cerr;
-			stat.summary(1, "New I2C error");
+		constexpr int timeout = 10.0; // seconds
+		const ros::Duration timeout_duration = ros::Duration(timeout);
+		if (last_rcd.isZero()) {
+			stat.summary(diagnostic_msgs::DiagnosticStatus::ERROR, "Not initialised");
+		} else if (ros::Time::now() - last_rcd > timeout_duration) {
+			stat.summary(diagnostic_msgs::DiagnosticStatus::STALE, "Not received for more than " + std::to_string(timeout) + "s");
+		} else {
+			if (vcc < 0)
+				stat.summary(diagnostic_msgs::DiagnosticStatus::ERROR, "No data");
+			else if (vcc < 4.5)
+				stat.summary(diagnostic_msgs::DiagnosticStatus::WARN, "Low voltage");
+			else if (i2cerr != i2cerr_last) {
+				i2cerr_last = i2cerr;
+				stat.summary(diagnostic_msgs::DiagnosticStatus::WARN, "New I2C error");
+			}
+			else
+				stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "Normal");
 		}
-		else
-			stat.summary(0, "Normal");
-
 		stat.addf("Core voltage", "%f", vcc);
 		stat.addf("I2C errors", "%zu", i2cerr);
 	}
@@ -392,6 +472,7 @@ private:
 	float vcc;
 	size_t i2cerr;
 	size_t i2cerr_last;
+	ros::Time last_rcd;
 };
 
 
@@ -409,70 +490,88 @@ public:
 		mem_diag("APM Memory"),
 		hwst_diag("APM Hardware"),
 		sys_diag("System"),
-		batt_diag("Battery"),
+		conn_heartbeat_mav_type(MAV_TYPE::ONBOARD_CONTROLLER),
 		version_retries(RETRIES_COUNT),
 		disable_diag(false),
-		has_battery_status(false),
-		battery_voltage(0.0)
-	{ }
+		has_battery_status0(false)
+	{
+		batt_diag.reserve(MAX_NR_BATTERY_STATUS);
+		batt_diag.emplace_back("Battery");
+		for (int i = 2; i <= MAX_NR_BATTERY_STATUS ; ++i) {
+			batt_diag.emplace_back(utils::format("Battery %u", i));
+		}
+	}
 
-	void initialize(UAS &uas_)
+	void initialize(UAS &uas_) override
 	{
 		PluginBase::initialize(uas_);
 
-		ros::Duration conn_heartbeat;
+		ros::WallDuration conn_heartbeat;
 
 		double conn_timeout_d;
 		double conn_heartbeat_d;
-		double min_voltage;
+		std::vector<double> min_voltage;
+		std::string conn_heartbeat_mav_type_str;
 
-		nh.param("conn/timeout", conn_timeout_d, 30.0);
-		nh.param("sys/min_voltage", min_voltage, 6.0);
+		nh.param("conn/timeout", conn_timeout_d, 10.0);
+		nh.param("sys/min_voltage", min_voltage, {10.0});
 		nh.param("sys/disable_diag", disable_diag, false);
 
-		// rate parameter
+		// heartbeat rate parameter
 		if (nh.getParam("conn/heartbeat_rate", conn_heartbeat_d) && conn_heartbeat_d != 0.0) {
-			conn_heartbeat = ros::Duration(ros::Rate(conn_heartbeat_d));
+			conn_heartbeat = ros::WallDuration(ros::Rate(conn_heartbeat_d));
+		}
+
+		// heartbeat mav type parameter
+		if (nh.getParam("conn/heartbeat_mav_type", conn_heartbeat_mav_type_str)) {
+			conn_heartbeat_mav_type = utils::mav_type_from_str(conn_heartbeat_mav_type_str);
 		}
 
 		// heartbeat diag always enabled
 		UAS_DIAG(m_uas).add(hb_diag);
 		if (!disable_diag) {
 			UAS_DIAG(m_uas).add(sys_diag);
-			UAS_DIAG(m_uas).add(batt_diag);
-
-			batt_diag.set_min_voltage(min_voltage);
+			for (size_t i = 0; i < MAX_NR_BATTERY_STATUS && i < min_voltage.size(); ++i) {
+				batt_diag[i].set_min_voltage(min_voltage[i]);
+				UAS_DIAG(m_uas).add(batt_diag[i]);
+			}
 		}
 
 
 		// one-shot timeout timer
-		timeout_timer = nh.createTimer(ros::Duration(conn_timeout_d),
+		timeout_timer = nh.createWallTimer(ros::WallDuration(conn_timeout_d),
 				&SystemStatusPlugin::timeout_cb, this, true);
 		//timeout_timer.start();
 
 		if (!conn_heartbeat.isZero()) {
-			heartbeat_timer = nh.createTimer(conn_heartbeat,
+			heartbeat_timer = nh.createWallTimer(conn_heartbeat,
 					&SystemStatusPlugin::heartbeat_cb, this);
 			//heartbeat_timer.start();
 		}
 
 		// version request timer
-		autopilot_version_timer = nh.createTimer(ros::Duration(1.0),
+		autopilot_version_timer = nh.createWallTimer(ros::WallDuration(1.0),
 				&SystemStatusPlugin::autopilot_version_cb, this);
 		autopilot_version_timer.stop();
 
 		state_pub = nh.advertise<mavros_msgs::State>("state", 10, true);
 		extended_state_pub = nh.advertise<mavros_msgs::ExtendedState>("extended_state", 10);
 		batt_pub = nh.advertise<BatteryMsg>("battery", 10);
+		estimator_status_pub = nh.advertise<mavros_msgs::EstimatorStatus>("estimator_status", 10);
+		statustext_pub = nh.advertise<mavros_msgs::StatusText>("statustext/recv", 10);
+		sys_status_pub = nh.advertise<mavros_msgs::SysStatus>("sys_status", 10);
+		statustext_sub = nh.subscribe("statustext/send", 10, &SystemStatusPlugin::statustext_cb, this);
 		rate_srv = nh.advertiseService("set_stream_rate", &SystemStatusPlugin::set_rate_cb, this);
 		mode_srv = nh.advertiseService("set_mode", &SystemStatusPlugin::set_mode_cb, this);
+		vehicle_info_get_srv = nh.advertiseService("vehicle_info_get", &SystemStatusPlugin::vehicle_info_get_cb, this);
+		message_interval_srv = nh.advertiseService("set_message_interval", &SystemStatusPlugin::set_message_interval_cb, this);
 
 		// init state topic
 		publish_disconnection();
 		enable_connection_cb();
 	}
 
-	Subscriptions get_subscriptions() {
+	Subscriptions get_subscriptions() override {
 		return {
 			make_handler(&SystemStatusPlugin::handle_heartbeat),
 			make_handler(&SystemStatusPlugin::handle_sys_status),
@@ -482,6 +581,7 @@ public:
 			make_handler(&SystemStatusPlugin::handle_autopilot_version),
 			make_handler(&SystemStatusPlugin::handle_extended_sys_state),
 			make_handler(&SystemStatusPlugin::handle_battery_status),
+			make_handler(&SystemStatusPlugin::handle_estimator_status),
 		};
 	}
 
@@ -492,24 +592,58 @@ private:
 	MemInfo mem_diag;
 	HwStatus hwst_diag;
 	SystemStatusDiag sys_diag;
-	BatteryStatusDiag batt_diag;
-	ros::Timer timeout_timer;
-	ros::Timer heartbeat_timer;
-	ros::Timer autopilot_version_timer;
+	std::vector<BatteryStatusDiag> batt_diag;
+	ros::WallTimer timeout_timer;
+	ros::WallTimer heartbeat_timer;
+	ros::WallTimer autopilot_version_timer;
 
 	ros::Publisher state_pub;
 	ros::Publisher extended_state_pub;
 	ros::Publisher batt_pub;
+	ros::Publisher estimator_status_pub;
+	ros::Publisher statustext_pub;
+	ros::Publisher sys_status_pub;
+	ros::Subscriber statustext_sub;
 	ros::ServiceServer rate_srv;
 	ros::ServiceServer mode_srv;
+	ros::ServiceServer vehicle_info_get_srv;
+	ros::ServiceServer message_interval_srv;
 
+	MAV_TYPE conn_heartbeat_mav_type;
 	static constexpr int RETRIES_COUNT = 6;
 	int version_retries;
 	bool disable_diag;
-	bool has_battery_status;
-	float battery_voltage;
+	bool has_battery_status0;
+
+	using M_VehicleInfo = std::unordered_map<uint16_t, mavros_msgs::VehicleInfo>;
+	M_VehicleInfo vehicles;
 
 	/* -*- mid-level helpers -*- */
+
+	// Get vehicle key for the unordered map containing all vehicles
+	inline uint16_t get_vehicle_key(uint8_t sysid,uint8_t compid) {
+		return sysid << 8 | compid;
+	}
+
+	// Find or create vehicle info
+	inline M_VehicleInfo::iterator find_or_create_vehicle_info(uint8_t sysid, uint8_t compid) {
+		auto key = get_vehicle_key(sysid, compid);
+		M_VehicleInfo::iterator ret = vehicles.find(key);
+
+		if (ret == vehicles.end()) {
+			// Not found
+			mavros_msgs::VehicleInfo v;
+			v.sysid = sysid;
+			v.compid = compid;
+			v.available_info = 0;
+
+			auto res = vehicles.emplace(key, v);	//-> pair<iterator, bool>
+			ret = res.first;
+		}
+
+		ROS_ASSERT(ret != vehicles.end());
+		return ret;
+	}
 
 	/**
 	 * Sent STATUSTEXT message to rosout
@@ -549,7 +683,7 @@ private:
 		case enum_value(MAV_SEVERITY::DEBUG):
 			ROS_DEBUG_STREAM_NAMED("fcu", "FCU: " << text);
 			break;
-		// [[[end]]] (checksum: 315aa363b5ecb4dda66cc8e1e3d3aa48)
+		// [[[end]]] (sum: MVqjY7XstN)
 		default:
 			ROS_WARN_STREAM_NAMED("fcu", "FCU: UNK(" << +severity << "): " << text);
 			break;
@@ -561,9 +695,9 @@ private:
 		// should be little-endian
 		uint64_t b;
 		memcpy(&b, array.data(), sizeof(uint64_t));
-		b = le16toh(b);
+		b = le64toh(b);
 
-		return utils::format("%016X", b);
+		return utils::format("%016llx", b);
 	}
 
 	void process_autopilot_version_normal(mavlink::common::msg::AUTOPILOT_VERSION &apv, uint8_t sysid, uint8_t compid)
@@ -628,11 +762,34 @@ private:
 
 	/* -*- message handlers -*- */
 
-	void handle_heartbeat(const mavlink::mavlink_message_t *msg, mavlink::common::msg::HEARTBEAT &hb)
+	void handle_heartbeat(const mavlink::mavlink_message_t *msg, mavlink::minimal::msg::HEARTBEAT &hb)
 	{
-		using mavlink::common::MAV_MODE_FLAG;
+		using mavlink::minimal::MAV_MODE_FLAG;
 
-		if (!m_uas->is_my_target(msg->sysid)) {
+		// Store generic info of all heartbeats seen
+		auto it = find_or_create_vehicle_info(msg->sysid, msg->compid);
+
+		auto vehicle_mode = m_uas->str_mode_v10(hb.base_mode, hb.custom_mode);
+		auto stamp = ros::Time::now();
+
+		// Update vehicle data
+		it->second.header.stamp = stamp;
+		it->second.available_info |= mavros_msgs::VehicleInfo::HAVE_INFO_HEARTBEAT;
+		it->second.autopilot = hb.autopilot;
+		it->second.type = hb.type;
+		it->second.system_status = hb.system_status;
+		it->second.base_mode = hb.base_mode;
+		it->second.custom_mode = hb.custom_mode;
+		it->second.mode = vehicle_mode;
+
+		if (!(hb.base_mode & enum_value(MAV_MODE_FLAG::CUSTOM_MODE_ENABLED))) {
+			it->second.mode_id = hb.base_mode;
+		} else {
+			it->second.mode_id = hb.custom_mode;
+		}
+
+		// Continue from here only if vehicle is my target
+		if (!m_uas->is_my_target(msg->sysid, msg->compid)) {
 			ROS_DEBUG_NAMED("sys", "HEARTBEAT from [%d, %d] dropped.", msg->sysid, msg->compid);
 			return;
 		}
@@ -645,11 +802,12 @@ private:
 
 		// build state message after updating uas
 		auto state_msg = boost::make_shared<mavros_msgs::State>();
-		state_msg->header.stamp = ros::Time::now();
+		state_msg->header.stamp = stamp;
 		state_msg->connected = true;
-		state_msg->armed = hb.base_mode & enum_value(MAV_MODE_FLAG::SAFETY_ARMED);
-		state_msg->guided = hb.base_mode & enum_value(MAV_MODE_FLAG::GUIDED_ENABLED);
-		state_msg->mode = m_uas->str_mode_v10(hb.base_mode, hb.custom_mode);
+		state_msg->armed = !!(hb.base_mode & enum_value(MAV_MODE_FLAG::SAFETY_ARMED));
+		state_msg->guided = !!(hb.base_mode & enum_value(MAV_MODE_FLAG::GUIDED_ENABLED));
+		state_msg->manual_input = !!(hb.base_mode & enum_value(MAV_MODE_FLAG::MANUAL_INPUT_ENABLED));
+		state_msg->mode = vehicle_mode;
 		state_msg->system_status = hb.system_status;
 
 		state_pub.publish(state_msg);
@@ -668,17 +826,40 @@ private:
 
 	void handle_sys_status(const mavlink::mavlink_message_t *msg, mavlink::common::msg::SYS_STATUS &stat)
 	{
-		float volt = stat.voltage_battery / 1000.0f;	// mV
-		float curr = stat.current_battery / 100.0f;	// 10 mA or -1
-		float rem = stat.battery_remaining / 100.0f;	// or -1
+		using MC = mavlink::minimal::MAV_COMPONENT;
+		if (static_cast<MC>(msg->compid) == MC::COMP_ID_GIMBAL) {
+			return;
+		}
 
-		battery_voltage = volt;
+		float volt = stat.voltage_battery * 0.001f;	// mV
+		float curr = stat.current_battery * 0.01f;	// 10 mA or -1
+		float rem = stat.battery_remaining * 0.01f;	// or -1
+
 		sys_diag.set(stat);
-		batt_diag.set(volt, curr, rem);
 
-		if (has_battery_status)
+		mavros_msgs::SysStatus sys_status;
+		sys_status.header.stamp = ros::Time::now();
+		sys_status.sensors_present = stat.onboard_control_sensors_present;
+		sys_status.sensors_enabled = stat.onboard_control_sensors_enabled;
+		sys_status.sensors_health = stat.onboard_control_sensors_health;
+
+		sys_status.load = stat.load;
+		sys_status.voltage_battery = stat.voltage_battery;
+		sys_status.current_battery = stat.current_battery;
+		sys_status.battery_remaining = stat.battery_remaining;
+		sys_status.drop_rate_comm = stat.drop_rate_comm;
+		sys_status.errors_comm = stat.errors_comm;
+		sys_status.errors_count1 = stat.errors_count1;
+		sys_status.errors_count2 = stat.errors_count2;
+		sys_status.errors_count3 = stat.errors_count3;
+		sys_status.errors_count4 = stat.errors_count4;
+
+		sys_status_pub.publish(sys_status);
+
+		if (has_battery_status0)
 			return;
 
+		batt_diag[0].set(volt, curr, rem);
 		auto batt_msg = boost::make_shared<BatteryMsg>();
 		batt_msg->header.stamp = ros::Time::now();
 
@@ -708,13 +889,18 @@ private:
 	void handle_statustext(const mavlink::mavlink_message_t *msg, mavlink::common::msg::STATUSTEXT &textm)
 	{
 		auto text = mavlink::to_string(textm.text);
-
 		process_statustext_normal(textm.severity, text);
+
+		auto st_msg = boost::make_shared<mavros_msgs::StatusText>();
+		st_msg->header.stamp = ros::Time::now();
+		st_msg->severity = textm.severity;
+		st_msg->text = text;
+		statustext_pub.publish(st_msg);
 	}
 
 	void handle_meminfo(const mavlink::mavlink_message_t *msg, mavlink::ardupilotmega::msg::MEMINFO &mem)
 	{
-		mem_diag.set(mem.freemem, mem.brkval);
+		mem_diag.set(std::max(static_cast<uint32_t>(mem.freemem), mem.freemem32), mem.brkval);
 	}
 
 	void handle_hwstatus(const mavlink::mavlink_message_t *msg, mavlink::ardupilotmega::msg::HWSTATUS &hwst)
@@ -735,25 +921,36 @@ private:
 			process_autopilot_version_apm_quirk(apv, msg->sysid, msg->compid);
 		else
 			process_autopilot_version_normal(apv, msg->sysid, msg->compid);
+
+		// Store generic info of all autopilot seen
+		auto it = find_or_create_vehicle_info(msg->sysid, msg->compid);
+
+		// Update vehicle data
+		it->second.header.stamp = ros::Time::now();
+		it->second.available_info |= mavros_msgs::VehicleInfo::HAVE_INFO_AUTOPILOT_VERSION;
+		it->second.capabilities = apv.capabilities;
+		it->second.flight_sw_version = apv.flight_sw_version;
+		it->second.middleware_sw_version = apv.middleware_sw_version;
+		it->second.os_sw_version = apv.os_sw_version;
+		it->second.board_version = apv.board_version;
+		it->second.flight_custom_version = custom_version_to_hex_string(apv.flight_custom_version);
+		it->second.vendor_id = apv.vendor_id;
+		it->second.product_id = apv.product_id;
+		it->second.uid = apv.uid;
 	}
 
 	void handle_battery_status(const mavlink::mavlink_message_t *msg, mavlink::common::msg::BATTERY_STATUS &bs)
 	{
-		// PX4.
 #ifdef HAVE_SENSOR_MSGS_BATTERYSTATE_MSG
 		using BT = mavlink::common::MAV_BATTERY_TYPE;
-
-		has_battery_status = true;
-
 		auto batt_msg = boost::make_shared<BatteryMsg>();
 		batt_msg->header.stamp = ros::Time::now();
 
-		batt_msg->voltage = battery_voltage;
-		batt_msg->current = -(bs.current_battery / 100.0f);	// 10 mA
+		batt_msg->current = bs.current_battery==-1?NAN:-(bs.current_battery * 0.01f);	// 10 mA
 		batt_msg->charge = NAN;
 		batt_msg->capacity = NAN;
 		batt_msg->design_capacity = NAN;
-		batt_msg->percentage = bs.battery_remaining / 100.0f;
+		batt_msg->percentage = bs.battery_remaining * 0.01f;
 		batt_msg->power_supply_status = BatteryMsg::POWER_SUPPLY_STATUS_DISCHARGING;
 		batt_msg->power_supply_health = BatteryMsg::POWER_SUPPLY_HEALTH_UNKNOWN;
 
@@ -787,41 +984,120 @@ private:
 		default:
 			batt_msg->power_supply_technology = BatteryMsg::POWER_SUPPLY_TECHNOLOGY_UNKNOWN;
 			break;
-		// [[[end]]] (checksum: 2bf14a81b3027f14ba1dd9b4c086a41d)
+		// [[[end]]] (sum: K/FKgbMCfx)
 		}
 
 		batt_msg->present = true;
 
 		batt_msg->cell_voltage.clear();
-		batt_msg->cell_voltage.reserve(bs.voltages.size());
+		batt_msg->cell_voltage.reserve(bs.voltages.size() + bs.voltages_ext.size());
+		float cell_voltage;
+		float voltage_acc = 0.0f;
+		float total_voltage = 0.0f;
+		constexpr float coalesce_voltage = (UINT16_MAX-1) * 0.001f; // 65,534V cell voltage means that the next element in the array must be added to this one
 		for (auto v : bs.voltages) {
 			if (v == UINT16_MAX)
 				break;
 
-			batt_msg->cell_voltage.push_back(v / 1000.0f);	// 1 mV
+			if (v == UINT16_MAX-1) // cell voltage is above 65,534V
+			{
+				voltage_acc += coalesce_voltage;
+				continue;          // add to the next array element to get the correct voltage
+			}
+			cell_voltage = voltage_acc + (v * 0.001f);	// 1 mV
+			voltage_acc = 0.0f;
+			batt_msg->cell_voltage.push_back(cell_voltage);
+			total_voltage += cell_voltage;
 		}
+		for (auto v : bs.voltages_ext) {
+			if (v == UINT16_MAX || v == 0)  // this one is different from the for loop above to support mavlink2 message truncation
+				break;
+
+			if (v == UINT16_MAX-1) // cell voltage is above 65,534V
+			{
+				voltage_acc += coalesce_voltage;
+				continue;          // add to the next array element to get the correct voltage
+			}
+			cell_voltage = voltage_acc + (v * 0.001f);	// 1 mV
+			voltage_acc = 0.0f;
+			batt_msg->cell_voltage.push_back(cell_voltage);
+			total_voltage += cell_voltage;
+		}
+		batt_msg->voltage = total_voltage;
 
 		batt_msg->location = utils::format("id%u", bs.id);
 		batt_msg->serial_number = "";
-
 		batt_pub.publish(batt_msg);
+
+		if (bs.id == 0) {
+			has_battery_status0 = true;
+		}
+
+		if (!disable_diag && bs.id >= 0 && bs.id < MAX_NR_BATTERY_STATUS) {
+			batt_diag[bs.id].set(total_voltage, batt_msg->current, batt_msg->percentage);
+			batt_diag[bs.id].setcell_v(batt_msg->cell_voltage);
+		}
 #endif
+	}
+
+	void handle_estimator_status(const mavlink::mavlink_message_t *msg, mavlink::common::msg::ESTIMATOR_STATUS &status)
+	{
+		using ESF = mavlink::common::ESTIMATOR_STATUS_FLAGS;
+
+		auto est_status_msg = boost::make_shared<mavros_msgs::EstimatorStatus>();
+		est_status_msg->header.stamp = ros::Time::now();
+
+		// [[[cog:
+		// import pymavlink.dialects.v20.common as common
+		// ename = 'ESTIMATOR_STATUS_FLAGS'
+		// ename_pfx2 = 'ESTIMATOR_'
+		//
+		// enum = sorted(common.enums[ename].items())
+		// enum.pop() # -> remove ENUM_END
+		//
+		// for k, e in enum:
+		//     desc = e.description.split(' ', 1)[1] if e.description.startswith('0x') else e.description
+		//     esf = e.name
+		//
+		//     if esf.startswith(ename + '_'):
+		//         esf = esf[len(ename) + 1:]
+		//     if esf.startswith(ename_pfx2):
+		//         esf = esf[len(ename_pfx2):]
+		//     if esf[0].isdigit():
+		//         esf = 'SENSOR_' + esf
+		//     cog.outl("est_status_msg->%s_status_flag = !!(status.flags & enum_value(ESF::%s));" % (esf.lower(), esf))
+		// ]]]
+		est_status_msg->attitude_status_flag = !!(status.flags & enum_value(ESF::ATTITUDE));
+		est_status_msg->velocity_horiz_status_flag = !!(status.flags & enum_value(ESF::VELOCITY_HORIZ));
+		est_status_msg->velocity_vert_status_flag = !!(status.flags & enum_value(ESF::VELOCITY_VERT));
+		est_status_msg->pos_horiz_rel_status_flag = !!(status.flags & enum_value(ESF::POS_HORIZ_REL));
+		est_status_msg->pos_horiz_abs_status_flag = !!(status.flags & enum_value(ESF::POS_HORIZ_ABS));
+		est_status_msg->pos_vert_abs_status_flag = !!(status.flags & enum_value(ESF::POS_VERT_ABS));
+		est_status_msg->pos_vert_agl_status_flag = !!(status.flags & enum_value(ESF::POS_VERT_AGL));
+		est_status_msg->const_pos_mode_status_flag = !!(status.flags & enum_value(ESF::CONST_POS_MODE));
+		est_status_msg->pred_pos_horiz_rel_status_flag = !!(status.flags & enum_value(ESF::PRED_POS_HORIZ_REL));
+		est_status_msg->pred_pos_horiz_abs_status_flag = !!(status.flags & enum_value(ESF::PRED_POS_HORIZ_ABS));
+		est_status_msg->gps_glitch_status_flag = !!(status.flags & enum_value(ESF::GPS_GLITCH));
+		est_status_msg->accel_error_status_flag = !!(status.flags & enum_value(ESF::ACCEL_ERROR));
+		// [[[end]]] (sum: 2lkjj01DN6)
+
+		estimator_status_pub.publish(est_status_msg);
 	}
 
 	/* -*- timer callbacks -*- */
 
-	void timeout_cb(const ros::TimerEvent &event)
+	void timeout_cb(const ros::WallTimerEvent &event)
 	{
 		m_uas->update_connection_status(false);
 	}
 
-	void heartbeat_cb(const ros::TimerEvent &event)
+	void heartbeat_cb(const ros::WallTimerEvent &event)
 	{
 		using mavlink::common::MAV_MODE;
 
-		mavlink::common::msg::HEARTBEAT hb {};
+		mavlink::minimal::msg::HEARTBEAT hb {};
 
-		hb.type = enum_value(MAV_TYPE::ONBOARD_CONTROLLER);
+		hb.type = enum_value(conn_heartbeat_mav_type); //! @todo patch PX4 so it can also handle this type as datalink
 		hb.autopilot = enum_value(MAV_AUTOPILOT::INVALID);
 		hb.base_mode = enum_value(MAV_MODE::MANUAL_ARMED);
 		hb.custom_mode = 0;
@@ -830,7 +1106,7 @@ private:
 		UAS_FCU(m_uas)->send_message_ignore_drop(hb);
 	}
 
-	void autopilot_version_cb(const ros::TimerEvent &event)
+	void autopilot_version_cb(const ros::WallTimerEvent &event)
 	{
 		using mavlink::common::MAV_CMD;
 
@@ -876,7 +1152,7 @@ private:
 
 	void connection_cb(bool connected) override
 	{
-		has_battery_status = false;
+		has_battery_status0 = false;
 
 		// if connection changes, start delayed version request
 		version_retries = RETRIES_COUNT;
@@ -886,7 +1162,7 @@ private:
 			autopilot_version_timer.stop();
 
 		// add/remove APM diag tasks
-		if (connected && disable_diag && m_uas->is_ardupilotmega()) {
+		if (connected && !disable_diag && m_uas->is_ardupilotmega()) {
 			UAS_DIAG(m_uas).add(mem_diag);
 			UAS_DIAG(m_uas).add(hwst_diag);
 		}
@@ -898,7 +1174,24 @@ private:
 		if (!connected) {
 			// publish connection change
 			publish_disconnection();
+
+			// Clear known vehicles
+			vehicles.clear();
 		}
+	}
+
+	/* -*- subscription callbacks -*- */
+
+	void statustext_cb(const mavros_msgs::StatusText::ConstPtr &req) {
+		mavlink::common::msg::STATUSTEXT statustext {};
+		statustext.severity = req->severity;
+
+		// Limit the length of the string by null-terminating at the 50-th character
+		ROS_WARN_COND_NAMED(req->text.length() >= statustext.text.size(), "sys",
+				"Status text too long: truncating...");
+		mavlink::set_string_z(statustext.text, req->text);
+
+		UAS_FCU(m_uas)->send_message_ignore_drop(statustext);
 	}
 
 	/* -*- ros callbacks -*- */
@@ -906,7 +1199,7 @@ private:
 	bool set_rate_cb(mavros_msgs::StreamRate::Request &req,
 			mavros_msgs::StreamRate::Response &res)
 	{
-		mavlink::common::msg::REQUEST_DATA_STREAM rq;
+		mavlink::common::msg::REQUEST_DATA_STREAM rq = {};
 
 		rq.target_system = m_uas->get_tgt_system();
 		rq.target_component = m_uas->get_tgt_component();
@@ -921,7 +1214,7 @@ private:
 	bool set_mode_cb(mavros_msgs::SetMode::Request &req,
 			mavros_msgs::SetMode::Response &res)
 	{
-		using mavlink::common::MAV_MODE_FLAG;
+		using mavlink::minimal::MAV_MODE_FLAG;
 
 		uint8_t base_mode = req.base_mode;
 		uint32_t custom_mode = 0;
@@ -942,7 +1235,7 @@ private:
 			base_mode |= enum_value(MAV_MODE_FLAG::CUSTOM_MODE_ENABLED);
 		}
 
-		mavlink::common::msg::SET_MODE sm;
+		mavlink::common::msg::SET_MODE sm = {};
 		sm.target_system = m_uas->get_tgt_system();
 		sm.base_mode = base_mode;
 		sm.custom_mode = custom_mode;
@@ -951,9 +1244,84 @@ private:
 		res.mode_sent = true;
 		return true;
 	}
+
+	bool vehicle_info_get_cb(mavros_msgs::VehicleInfoGet::Request &req,
+			mavros_msgs::VehicleInfoGet::Response &res)
+	{
+		if (req.get_all) {
+			// Send all vehicles
+			for (const auto &got : vehicles) {
+				res.vehicles.emplace_back(got.second);
+			}
+
+			res.success = true;
+			return res.success;
+		}
+
+		uint8_t req_sysid = req.sysid;
+		uint8_t req_compid = req.compid;
+
+		if (req.sysid == 0 && req.compid == 0) {
+			// use target
+			req_sysid = m_uas->get_tgt_system();
+			req_compid = m_uas->get_tgt_component();
+		}
+
+		uint16_t key = get_vehicle_key(req_sysid, req_compid);
+		auto it = vehicles.find(key);
+
+		if (it == vehicles.end()) {
+			// Vehicle not found
+			res.success = false;
+			return res.success;
+		}
+
+		res.vehicles.emplace_back(it->second);
+		res.success = true;
+		return res.success;
+	}
+
+    bool set_message_interval_cb(mavros_msgs::MessageInterval::Request &req,
+            mavros_msgs::MessageInterval::Response &res)
+    {
+        using mavlink::common::MAV_CMD;
+
+        try {
+            auto client = nh.serviceClient<mavros_msgs::CommandLong>("cmd/command");
+
+            // calculate interval
+            float interval_us;
+            if (req.message_rate < 0) {
+                interval_us = -1.0f;
+            } else if (req.message_rate == 0) {
+                interval_us = 0.0f;
+            } else {
+                interval_us = 1000000.0f / req.message_rate;
+            }
+
+            mavros_msgs::CommandLong cmd{};
+
+            cmd.request.broadcast = false;
+            cmd.request.command = enum_value(MAV_CMD::SET_MESSAGE_INTERVAL);
+            cmd.request.confirmation = false;
+            cmd.request.param1 = req.message_id;
+            cmd.request.param2 = interval_us;
+
+            ROS_DEBUG_NAMED("sys", "SetMessageInterval: Request msgid %u at %f hz",
+                    req.message_id, req.message_rate);
+            res.success = client.call(cmd);
+        }
+        catch (ros::InvalidNameException &ex) {
+            ROS_ERROR_NAMED("sys", "SetMessageInterval: %s", ex.what());
+        }
+
+        ROS_ERROR_COND_NAMED(!res.success, "sys", "SetMessageInterval: command plugin service call failed!");
+
+        return res.success;
+    }
 };
 }	// namespace std_plugins
 }	// namespace mavros
 
-#include <pluginlib/class_list_macros.h>
+#include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(mavros::std_plugins::SystemStatusPlugin, mavros::plugin::PluginBase)

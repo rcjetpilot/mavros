@@ -8,7 +8,7 @@ __all__ = (
     'DEFAULT_NAMESPACE'
 )
 
-DEFAULT_NAMESPACE = '/mavros'
+DEFAULT_NAMESPACE = 'mavros'
 
 # global namespace storage
 _mavros_ns = None
@@ -50,4 +50,4 @@ def get_topic(*args):
     """
     Create topic name for mavros node
     """
-    return '/'.join((get_namespace(), ) + args)
+    return '/'+'/'.join((get_namespace(), ) + args)

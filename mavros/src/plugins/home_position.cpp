@@ -36,7 +36,7 @@ public:
 		REQUEST_POLL_TIME_DT(REQUEST_POLL_TIME_MS / 1000.0)
 	{ }
 
-	void initialize(UAS &uas_)
+	void initialize(UAS &uas_) override
 	{
 		PluginBase::initialize(uas_);
 
@@ -49,7 +49,7 @@ public:
 		enable_connection_cb();
 	}
 
-	Subscriptions get_subscriptions()
+	Subscriptions get_subscriptions() override
 	{
 		return {
 			       make_handler(&HomePositionPlugin::handle_home_position),
@@ -136,7 +136,7 @@ private:
 		hp.altitude = req->geo.altitude * 1e3 + m_uas->ellipsoid_to_geoid_height(&req->geo);
 		// [[[cog:
 		// for f, m in (('latitude', '1e7'), ('longitude', '1e7')):
-		//     cog.outl("hp.{f} = req->{f} * {m};".format(**locals()))
+		//     cog.outl("hp.{f} = req->geo.{f} * {m};".format(**locals()))
 		// for a, b in (('', 'pos'), ('approach_', 'approach')):
 		//     for f in "xyz":
 		//         cog.outl("hp.{a}{f} = {b}.{f}();".format(**locals()))
@@ -149,7 +149,7 @@ private:
 		hp.approach_x = approach.x();
 		hp.approach_y = approach.y();
 		hp.approach_z = approach.z();
-		// [[[end]]] (checksum: c3c143d4c5ed3e63770ccceeb5c0a77a)
+		// [[[end]]] (sum: nEDFs6wGs7)
 
 		UAS_FCU(m_uas)->send_message_ignore_drop(hp);
 	}
@@ -177,5 +177,5 @@ private:
 }	// namespace std_plugins
 }	// namespace mavros
 
-#include <pluginlib/class_list_macros.h>
+#include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(mavros::std_plugins::HomePositionPlugin, mavros::plugin::PluginBase)

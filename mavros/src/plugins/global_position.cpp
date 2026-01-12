@@ -22,6 +22,7 @@
 #include <GeographicLib/Geocentric.hpp>
 
 #include <std_msgs/Float64.h>
+#include <std_msgs/UInt32.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <sensor_msgs/NavSatStatus.h>
@@ -37,30 +38,35 @@ namespace std_plugins {
 /**
  * @brief Global position plugin.
  *
- * Publishes global position. Convertion from GPS LLA to ECEF allows
+ * Publishes global position. Conversion from GPS LLA to ECEF allows
  * publishing local position to TF and PoseWithCovarianceStamped.
  *
  */
 class GlobalPositionPlugin : public plugin::PluginBase {
 public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
 	GlobalPositionPlugin() : PluginBase(),
 		gp_nh("~global_position"),
+		hp_nh("~home_position"),
 		tf_send(false),
-		rot_cov(99999.0),
 		use_relative_alt(true),
-		is_map_init(false)
+		is_map_init(false),
+		rot_cov(99999.0)
 	{ }
 
-	void initialize(UAS &uas_)
+	void initialize(UAS &uas_) override
 	{
 		PluginBase::initialize(uas_);
 
 		// general params
 		gp_nh.param<std::string>("frame_id", frame_id, "map");
+		gp_nh.param<std::string>("child_frame_id", child_frame_id, "base_link");
 		gp_nh.param("rot_covariance", rot_cov, 99999.0);
+		gp_nh.param("gps_uere", gps_uere, 1.0);
 		gp_nh.param("use_relative_alt", use_relative_alt, true);
 		// tf subsection
-		gp_nh.param("tf/send", tf_send, true);
+		gp_nh.param("tf/send", tf_send, false);
 		gp_nh.param<std::string>("tf/frame_id", tf_frame_id, "map");
 		gp_nh.param<std::string>("tf/global_frame_id", tf_global_frame_id, "earth");	// The global_origin should be represented as "earth" coordinate frame (ECEF) (REP 105)
 		gp_nh.param<std::string>("tf/child_frame_id", tf_child_frame_id, "base_link");
@@ -70,6 +76,7 @@ public:
 		// gps data
 		raw_fix_pub = gp_nh.advertise<sensor_msgs::NavSatFix>("raw/fix", 10);
 		raw_vel_pub = gp_nh.advertise<geometry_msgs::TwistStamped>("raw/gps_vel", 10);
+		raw_sat_pub = gp_nh.advertise<std_msgs::UInt32>("raw/satellites", 10);
 
 		// fused global position
 		gp_fix_pub = gp_nh.advertise<sensor_msgs::NavSatFix>("global", 10);
@@ -78,18 +85,18 @@ public:
 		gp_hdg_pub = gp_nh.advertise<std_msgs::Float64>("compass_hdg", 10);
 
 		// global origin
-		gp_global_origin_pub = gp_nh.advertise<geographic_msgs::GeoPointStamped>("gp_origin", 10);
+		gp_global_origin_pub = gp_nh.advertise<geographic_msgs::GeoPointStamped>("gp_origin", 10, true);
 		gp_set_global_origin_sub = gp_nh.subscribe("set_gp_origin", 10, &GlobalPositionPlugin::set_gp_origin_cb, this);
 
 		// home position subscriber to set "map" origin
 		// TODO use UAS
-		hp_sub = gp_nh.subscribe("home", 10, &GlobalPositionPlugin::home_position_cb, this);
+		hp_sub = hp_nh.subscribe("home", 10, &GlobalPositionPlugin::home_position_cb, this);
 
 		// offset from local position to the global origin ("earth")
 		gp_global_offset_pub = gp_nh.advertise<geometry_msgs::PoseStamped>("gp_lp_offset", 10);
 	}
 
-	Subscriptions get_subscriptions()
+	Subscriptions get_subscriptions() override
 	{
 		return {
 				make_handler(&GlobalPositionPlugin::handle_gps_raw_int),
@@ -102,9 +109,11 @@ public:
 
 private:
 	ros::NodeHandle gp_nh;
+	ros::NodeHandle hp_nh;	//node handler in home_position namespace
 
 	ros::Publisher raw_fix_pub;
 	ros::Publisher raw_vel_pub;
+	ros::Publisher raw_sat_pub;
 	ros::Publisher gp_odom_pub;
 	ros::Publisher gp_fix_pub;
 	ros::Publisher gp_hdg_pub;
@@ -115,7 +124,8 @@ private:
 	ros::Subscriber gp_set_global_origin_sub;
 	ros::Subscriber hp_sub;
 
-	std::string frame_id;		//!< frame for topic headers
+	std::string frame_id;		//!< origin frame for topic headers
+	std::string child_frame_id;	//!< body-fixed frame for topic headers
 	std::string tf_frame_id;	//!< origin for TF
 	std::string tf_global_frame_id;	//!< global origin for TF
 	std::string tf_child_frame_id;	//!< frame for TF and Pose
@@ -125,9 +135,11 @@ private:
 	bool is_map_init;
 
 	double rot_cov;
+	double gps_uere;
 
-	Eigen::Vector3d map_origin {};	//!< origin of map frame
-	Eigen::Vector3d local_ecef {};	//!< local ECEF coordinates on map frame
+	Eigen::Vector3d map_origin {};	//!< geodetic origin of map frame [lla]
+	Eigen::Vector3d ecef_origin {};	//!< geocentric origin of map frame [m]
+	Eigen::Vector3d local_ecef {};	//!< local ECEF coordinates on map frame [m]
 
 	template<typename MsgT>
 	inline void fill_lla(MsgT &msg, sensor_msgs::NavSatFix::Ptr fix)
@@ -150,7 +162,7 @@ private:
 	{
 		auto fix = boost::make_shared<sensor_msgs::NavSatFix>();
 
-		fix->header = m_uas->synchronized_header(frame_id, raw_gps.time_usec);
+		fix->header = m_uas->synchronized_header(child_frame_id, raw_gps.time_usec);
 
 		fix->status.service = sensor_msgs::NavSatStatus::SERVICE_GPS;
 		if (raw_gps.fix_type > 2)
@@ -165,12 +177,17 @@ private:
 		float eph = (raw_gps.eph != UINT16_MAX) ? raw_gps.eph / 1E2F : NAN;
 		float epv = (raw_gps.epv != UINT16_MAX) ? raw_gps.epv / 1E2F : NAN;
 
-		if (!std::isnan(eph)) {
-			const double hdop = eph;
+		ftf::EigenMapCovariance3d gps_cov(fix->position_covariance.data());
 
-			// From nmea_navsat_driver
-			fix->position_covariance[0 + 0] = fix->position_covariance[3 + 1] = std::pow(hdop, 2);
-			fix->position_covariance[6 + 2] = std::pow(2 * hdop, 2);
+		// With mavlink v2.0 use accuracies reported by sensor
+		if (msg->magic == MAVLINK_STX &&
+				raw_gps.h_acc > 0 && raw_gps.v_acc > 0) {
+			gps_cov.diagonal() << std::pow(raw_gps.h_acc / 1E3, 2), std::pow(raw_gps.h_acc / 1E3, 2), std::pow(raw_gps.v_acc / 1E3, 2);
+			fix->position_covariance_type = sensor_msgs::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
+		}
+		// With mavlink v1.0 approximate accuracies by DOP
+		else if (!std::isnan(eph) && !std::isnan(epv)) {
+			gps_cov.diagonal() << std::pow(eph * gps_uere, 2), std::pow(eph * gps_uere, 2), std::pow(epv * gps_uere, 2);
 			fix->position_covariance_type = sensor_msgs::NavSatFix::COVARIANCE_TYPE_APPROXIMATED;
 		}
 		else {
@@ -188,8 +205,8 @@ private:
 
 			auto vel = boost::make_shared<geometry_msgs::TwistStamped>();
 
-			vel->header.frame_id = frame_id;
 			vel->header.stamp = fix->header.stamp;
+			vel->header.frame_id = frame_id;
 
 			// From nmea_navsat_driver
 			vel->twist.linear.x = speed * std::sin(course);
@@ -197,6 +214,11 @@ private:
 
 			raw_vel_pub.publish(vel);
 		}
+
+		// publish satellite count
+		auto sat_cnt = boost::make_shared<std_msgs::UInt32>();
+		sat_cnt->data = raw_gps.satellites_visible;
+		raw_sat_pub.publish(sat_cnt);
 	}
 
 	void handle_gps_global_origin(const mavlink::mavlink_message_t *msg, mavlink::common::msg::GPS_GLOBAL_ORIGIN &glob_orig)
@@ -207,22 +229,11 @@ private:
 		g_origin->header.frame_id = tf_global_frame_id;
 		g_origin->header.stamp = ros::Time::now();
 
-		try {
-			/**
-			 * @brief Conversion from geodetic coordinates (LLA) to ECEF (Earth-Centered, Earth-Fixed)
-			 * Note: "earth" frame, in ECEF, of the global origin
-			 */
-			GeographicLib::Geocentric earth(GeographicLib::Constants::WGS84_a(),
-					GeographicLib::Constants::WGS84_f());
+		g_origin->position.latitude = glob_orig.latitude / 1E7;
+		g_origin->position.longitude = glob_orig.longitude / 1E7;
+		g_origin->position.altitude = glob_orig.altitude / 1E3 + m_uas->geoid_to_ellipsoid_height(&g_origin->position);	// convert height amsl to height above the ellipsoid
 
-			earth.Forward(glob_orig.latitude / 1E7, glob_orig.longitude / 1E7, glob_orig.altitude / 1E3,
-					g_origin->position.latitude, g_origin->position.longitude, g_origin->position.altitude);
-
-			gp_global_origin_pub.publish(g_origin);
-		}
-		catch (const std::exception& e) {
-			ROS_INFO_STREAM("GP: Caught exception: " << e.what() << std::endl);
-		}
+		gp_global_origin_pub.publish(g_origin);
 	}
 
 	/** @todo Handler for GLOBAL_POSITION_INT_COV */
@@ -234,7 +245,7 @@ private:
 		auto relative_alt = boost::make_shared<std_msgs::Float64>();
 		auto compass_heading = boost::make_shared<std_msgs::Float64>();
 
-		auto header = m_uas->synchronized_header(frame_id, gpos.time_boot_ms);
+		auto header = m_uas->synchronized_header(child_frame_id, gpos.time_boot_ms);
 
 		// Global position fix
 		fix->header = header;
@@ -274,29 +285,27 @@ private:
 		 * Pose covariance: computed, with fixed diagonal
 		 * Velocity covariance: unknown
 		 */
-		odom->header = header;
+		odom->header.stamp = header.stamp;
+		odom->header.frame_id = frame_id;
+		odom->child_frame_id = child_frame_id;
 
 		// Linear velocity
-		tf::vectorEigenToMsg(Eigen::Vector3d(gpos.vx, gpos.vy, gpos.vz) / 1E2,
+		tf::vectorEigenToMsg(Eigen::Vector3d(gpos.vy, gpos.vx, gpos.vz) / 1E2,
 					odom->twist.twist.linear);
-
-		// Angular rates not provided in GLOBAL_POSITION_INT
-		tf::vectorEigenToMsg(Eigen::Vector3d(NAN, NAN, NAN),
-					odom->twist.twist.angular);
 
 		// Velocity covariance unknown
 		ftf::EigenMapCovariance6d vel_cov_out(odom->twist.covariance.data());
 		vel_cov_out.fill(0.0);
 		vel_cov_out(0) = -1.0;
 
-		// ECEF point in "map" frame
+		// Current fix in ECEF
 		Eigen::Vector3d map_point;
 
 		try {
 			/**
 			 * @brief Conversion from geodetic coordinates (LLA) to ECEF (Earth-Centered, Earth-Fixed)
 			 *
-			 * Note: "map_origin" is the origin of "map" frame, in ECEF, and the local coordinates are
+			 * Note: "ecef_origin" is the origin of "map" frame, in ECEF, and the local coordinates are
 			 * in spherical coordinates, with the orientation in ENU (just like what is applied
 			 * on Gazebo)
 			 */
@@ -305,31 +314,33 @@ private:
 
 			/**
 			 * @brief Checks if the "map" origin is set.
-			 * - If not, and the home position is also not received, it sets the current local ecef as the origin;
+			 * - If not, and the home position is also not received, it sets the current fix as the origin;
 			 * - If the home position is received, it sets the "map" origin;
 			 * - If the "map" origin is set, then it applies the rotations to the offset between the origin
 			 * and the current local geocentric coordinates.
 			 */
-			if (!is_map_init) {
-				map.Forward(fix->latitude, fix->longitude, fix->altitude,
-							map_origin.x(), map_origin.y(), map_origin.z());
+			// Current fix to ECEF
+			map.Forward(fix->latitude, fix->longitude, fix->altitude,
+						map_point.x(), map_point.y(), map_point.z());
 
-				local_ecef = map_origin;
+			// Set the current fix as the "map" origin if it's not set
+			if (!is_map_init && fix->status.status >= sensor_msgs::NavSatStatus::STATUS_FIX) {
+				map_origin.x() = fix->latitude;
+				map_origin.y() = fix->longitude;
+				map_origin.z() = fix->altitude;
+
+				ecef_origin = map_point; // Local position is zero
 				is_map_init = true;
-			}
-			// If origin is set, compute the local coordinates in ENU
-			else {
-				map.Forward(fix->latitude, fix->longitude, fix->altitude,
-							map_point.x(), map_point.y(), map_point.z());
-
-				local_ecef = map_origin - map_point;
 			}
 		}
 		catch (const std::exception& e) {
 			ROS_INFO_STREAM("GP: Caught exception: " << e.what() << std::endl);
 		}
 
-		tf::pointEigenToMsg(ftf::transform_frame_ecef_enu(local_ecef), odom->pose.pose.position);
+		// Compute the local coordinates in ECEF
+		local_ecef = map_point - ecef_origin;
+		// Compute the local coordinates in ENU
+		tf::pointEigenToMsg(ftf::transform_frame_ecef_enu(local_ecef, map_origin), odom->pose.pose.position);
 
 		/**
 		 * @brief By default, we are using the relative altitude instead of the geocentric
@@ -338,7 +349,7 @@ private:
 		if (use_relative_alt)
 			odom->pose.pose.position.z = relative_alt->data;
 
-		odom->pose.pose.orientation = m_uas->get_attitude_orientation();
+		odom->pose.pose.orientation = m_uas->get_attitude_orientation_enu();
 
 		// Use ENU covariance to build XYZRPY covariance
 		ftf::EigenMapConstCovariance3d gps_cov(fix->position_covariance.data());
@@ -450,12 +461,27 @@ private:
 		map_origin.y() = req->geo.longitude;
 		map_origin.z() = req->geo.altitude;
 
+		try {
+			/**
+			 * @brief Conversion from geodetic coordinates (LLA) to ECEF (Earth-Centered, Earth-Fixed)
+			 */
+			GeographicLib::Geocentric map(GeographicLib::Constants::WGS84_a(),
+						GeographicLib::Constants::WGS84_f());
+
+			// map_origin to ECEF
+			map.Forward(map_origin.x(), map_origin.y(), map_origin.z(),
+						ecef_origin.x(), ecef_origin.y(), ecef_origin.z());
+		}
+		catch (const std::exception& e) {
+			ROS_INFO_STREAM("GP: Caught exception: " << e.what() << std::endl);
+		}
+
 		is_map_init = true;
 	}
 
 	void set_gp_origin_cb(const geographic_msgs::GeoPointStamped::ConstPtr &req)
 	{
-		mavlink::common::msg::SET_GPS_GLOBAL_ORIGIN gpo;
+		mavlink::common::msg::SET_GPS_GLOBAL_ORIGIN gpo = {};
 
 		Eigen::Vector3d global_position;
 
@@ -464,7 +490,7 @@ private:
 
 		gpo.latitude = req->position.latitude * 1E7;
 		gpo.longitude = req->position.longitude * 1E7;
-		gpo.altitude = req->position.altitude * 1E3 + m_uas->ellipsoid_to_geoid_height(&req->position);
+		gpo.altitude = (req->position.altitude + m_uas->ellipsoid_to_geoid_height(&req->position)) * 1E3;
 
 		UAS_FCU(m_uas)->send_message_ignore_drop(gpo);
 	}
@@ -472,5 +498,5 @@ private:
 }	// namespace std_plugins
 }	// namespace mavros
 
-#include <pluginlib/class_list_macros.h>
+#include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(mavros::std_plugins::GlobalPositionPlugin, mavros::plugin::PluginBase)

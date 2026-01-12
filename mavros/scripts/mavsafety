@@ -38,6 +38,17 @@ def do_arm(args):
 def do_disarm(args):
     _arm(args, False)
 
+def do_kill(args):
+    try:
+        ret = command.long(command=400, param2=21196)
+    except rospy.ServiceException as ex:
+        fault(ex)
+
+    if not ret.success:
+        fault("Request failed. Check mavros logs")
+
+    print_if(args.verbose, "Command result:", ret.result)
+    return ret
 
 _ONCE_DELAY = 3
 def do_safetyarea(args):
@@ -65,9 +76,9 @@ def do_safetyarea(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Commad line tool for manipulating safty on MAVLink device.")
-    parser.add_argument('-n', '--mavros-ns', help="ROS node namespace", default="/mavros")
-    parser.add_argument('-v', '--verbose', action='store_true', help="verbose output")
+    parser = argparse.ArgumentParser(description="Command line tool for manipulating safety on MAVLink device.")
+    parser.add_argument('-n', '--mavros-ns', help="ROS node namespace", default=mavros.DEFAULT_NAMESPACE)
+    parser.add_argument('-v', '--verbose', action='store_true', help="Verbose output")
     subarg = parser.add_subparsers()
 
     arm_args = subarg.add_parser('arm', help="Arm motors")
@@ -75,6 +86,9 @@ def main():
 
     disarm_args = subarg.add_parser('disarm', help="Disarm motors")
     disarm_args.set_defaults(func=do_disarm)
+
+    kill_args = subarg.add_parser('kill', help="Kill motors")
+    kill_args.set_defaults(func=do_kill)
 
     safety_area_args = subarg.add_parser('safetyarea', help="Send safety area")
     safety_area_args.set_defaults(func=do_safetyarea)

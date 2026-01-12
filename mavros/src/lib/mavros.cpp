@@ -18,6 +18,10 @@
 
 // MAVLINK_VERSION string
 #include <mavlink/config.h>
+#include <mavconn/mavlink_dialect.h>
+
+#include <mavconn/udp.h>
+#include <std_msgs/String.h>
 
 using namespace mavros;
 using mavconn::MAVConnInterface;
@@ -29,6 +33,7 @@ using utils::enum_value;
 
 MavRos::MavRos() :
 	mavlink_nh("mavlink"),		// allow to namespace it
+	last_message_received_from_gcs(0),
 	fcu_link_diag("FCU connection"),
 	gcs_link_diag("GCS bridge"),
 	plugin_loader("mavros", "mavros::plugin::PluginBase"),
@@ -39,6 +44,7 @@ MavRos::MavRos() :
 	int system_id, component_id;
 	int tgt_system_id, tgt_component_id;
 	bool px4_usb_quirk;
+	double conn_timeout_d;
 	ros::V_string plugin_blacklist{}, plugin_whitelist{};
 	MAVConnInterface::Ptr fcu_link;
 
@@ -46,7 +52,10 @@ MavRos::MavRos() :
 
 	nh.param<std::string>("fcu_url", fcu_url, "serial:///dev/ttyACM0");
 	nh.param<std::string>("gcs_url", gcs_url, "udp://@");
-	nh.param<std::string>("fcu_protocol", fcu_protocol, "v1.0");
+	nh.param<bool>("gcs_quiet_mode", gcs_quiet_mode, false);
+	nh.param("conn/timeout", conn_timeout_d, 30.0);
+
+	nh.param<std::string>("fcu_protocol", fcu_protocol, "v2.0");
 	nh.param("system_id", system_id, 1);
 	nh.param<int>("component_id", component_id, mavconn::MAV_COMP_ID_UDP_BRIDGE);
 	nh.param("target_system_id", tgt_system_id, 1);
@@ -55,12 +64,27 @@ MavRos::MavRos() :
 	nh.getParam("plugin_blacklist", plugin_blacklist);
 	nh.getParam("plugin_whitelist", plugin_whitelist);
 
+	// Get frame_id
+	std::string base_link_frame_id, odom_frame_id, map_frame_id;
+	if (nh.param<std::string>("base_link_frame_id", base_link_frame_id, "base_link"))
+		ROS_INFO("Find param base_link_frame_id: %s", base_link_frame_id.c_str());
+	if (nh.param<std::string>("odom_frame_id", odom_frame_id, "odom"))
+		ROS_INFO("Find param odom_frame_id: %s", odom_frame_id.c_str());
+	if (nh.param<std::string>("map_frame_id", map_frame_id, "map"))
+		ROS_INFO("Find param map_frame_id: %s", map_frame_id.c_str());
+	mav_uas.set_base_link_frame_id(base_link_frame_id);
+	mav_uas.set_odom_frame_id(odom_frame_id);
+	mav_uas.set_map_frame_id(map_frame_id);
+	mav_uas.setup_static_tf();
+
+	conn_timeout = ros::Duration(conn_timeout_d);
+
 	// Now we use FCU URL as a hardware Id
 	UAS_DIAG(&mav_uas).setHardwareID(fcu_url);
 
 	ROS_INFO_STREAM("FCU URL: " << fcu_url);
 	try {
-		fcu_link = MAVConnInterface::open_url(fcu_url, system_id, component_id);
+		fcu_link = MAVConnInterface::open_url_no_connect(fcu_url, system_id, component_id);
 		// may be overridden by URL
 		system_id = fcu_link->get_system_id();
 		component_id = fcu_link->get_component_id();
@@ -91,7 +115,7 @@ MavRos::MavRos() :
 	if (gcs_url != "") {
 		ROS_INFO_STREAM("GCS URL: " << gcs_url);
 		try {
-			gcs_link = MAVConnInterface::open_url(gcs_url, system_id, component_id);
+			gcs_link = MAVConnInterface::open_url_no_connect(gcs_url, system_id, component_id);
 
 			gcs_link_diag.set_mavconn(gcs_link);
 			gcs_diag_updater.setHardwareID(gcs_url);
@@ -131,24 +155,31 @@ MavRos::MavRos() :
 	// connect FCU link
 
 	// XXX TODO: move workers to ROS Spinner, let mavconn threads to do only IO
-	fcu_link->message_received_cb = [this](const mavlink_message_t *msg, const Framing framing) {
-		mavlink_pub_cb(msg, framing);
-		plugin_route_cb(msg, framing);
+	fcu_link->connect(
+		[this](const mavlink_message_t *msg, const Framing framing) {
+			mavlink_pub_cb(msg, framing);
+			plugin_route_cb(msg, framing);
 
-		if (gcs_link)
-			gcs_link->send_message_ignore_drop(msg);
-	};
+			if (gcs_link) {
+				if (this->gcs_quiet_mode && msg->msgid != mavlink::minimal::msg::HEARTBEAT::MSG_ID &&
+					(ros::Time::now() - this->last_message_received_from_gcs > this->conn_timeout)) {
+					return;
+				}
 
-	fcu_link->port_closed_cb = []() {
-		ROS_ERROR("FCU connection closed, mavros will be terminated.");
-		ros::requestShutdown();
-	};
+				gcs_link->send_message_ignore_drop(msg);
+			}
+		},
+		[]() {
+			ROS_ERROR("FCU connection closed, mavros will be terminated.");
+			ros::requestShutdown();
+		});
 
 	if (gcs_link) {
 		// setup GCS link bridge
-		gcs_link->message_received_cb = [this, fcu_link](const mavlink_message_t *msg, const Framing framing) {
+		gcs_link->connect([this, fcu_link](const mavlink_message_t *msg, const Framing framing) {
+			this->last_message_received_from_gcs = ros::Time::now();
 			fcu_link->send_message_ignore_drop(msg);
-		};
+		});
 
 		gcs_link_diag.set_connection_status(true);
 	}
@@ -181,6 +212,28 @@ void MavRos::spin()
 					gcs_diag_updater.update();
 			});
 	diag_timer.start();
+
+	auto remote_endpoint_timer = mavlink_nh.createTimer(
+		ros::Duration(1.0), [&](const ros::TimerEvent&) {
+			static auto pub = mavlink_nh.advertise<std_msgs::String>("gcs_ip", 1, true /* latch */);
+			static auto finished = false;
+
+			if (finished)
+				return;
+
+			if (const auto* p = dynamic_cast<mavconn::MAVConnUDP*>(gcs_link.get())) {
+				const auto endpoint = p->get_remote_endpoint();
+				const auto endpoint_valid = endpoint.find("255.255.255.255") == std::string::npos;
+
+				if (endpoint_valid) {
+					std_msgs::String msg;
+					msg.data = endpoint.substr(0, endpoint.find(":"));
+					pub.publish(msg);
+					finished = true;
+				}
+			}
+		});
+	remote_endpoint_timer.start();
 
 	spinner.start();
 	ros::waitForShutdown();
@@ -361,4 +414,3 @@ void MavRos::log_connect_change(bool connected)
 	else
 		ROS_WARN("CON: Lost connection, HEARTBEAT timed out.");
 }
-

@@ -2,6 +2,1108 @@
 Changelog for package mavros
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.21.1 (2025-12-12)
+-------------------
+* Handling empty trajectory message
+* Contributors: Mihir Dharmadhikari
+
+1.21.0 (2025-09-08)
+-------------------
+* regenerate all
+* tools: move scripts to use with uv
+  add uncrustify helper
+* Update mode 14 from LAND to AVOID_ADSB.
+* Contributors: FAC94, Vladimir Ermakov
+
+1.20.1 (2025-05-05)
+-------------------
+
+1.20.0 (2024-10-10)
+-------------------
+* add param to odom plugin
+* add frame_id parameter
+* Contributors: EnderMandS
+
+1.19.0 (2024-06-06)
+-------------------
+* gps_global_origin: remove LLA to ECEF conversion
+  gps_global_origin is being published as
+  geographic_msgs::GeoPointStamped
+  message, which wants LLA format
+  https://docs.ros.org/en/api/geographic_msgs/html/msg/GeoPointStamped.html
+  FIX https://github.com/mavlink/mavros/issues/1381
+* Contributors: Beniamino Pozzan
+
+1.18.0 (2024-03-03)
+-------------------
+* sys_status.cpp: improve timeout code
+* sys_status.cpp: Add a SYS_STATUS message publisher
+* Contributors: Dr.-Ing. Amilcar do Carmo Lucas
+
+1.17.0 (2023-09-09)
+-------------------
+* cog: regenerate all
+* Bugfix/update map origin with home position (`#1892 <https://github.com/mavlink/mavros/issues/1892>`_)
+  * Update map origin with home position
+  * Uncrustify
+  * Revert "Uncrustify"
+  This reverts commit f1387c79c7670cc241986586436e3da43842e877.
+  * Change to relative topic
+  ---------
+  Co-authored-by: Natalia Molina <molina-munoz@wingcopter.com>
+* Merge pull request `#1865 <https://github.com/mavlink/mavros/issues/1865>`_ from scoutdi/warnings
+  Fix / suppress some build warnings
+* mavros: Remove extra ';'
+* Suppress warnings from included headers
+* Contributors: Morten Fyhn Amundsen, Vladimir Ermakov, natmol
+
+1.16.0 (2023-05-05)
+-------------------
+* Merge pull request `#1829 <https://github.com/mavlink/mavros/issues/1829>`_ from snwu1996/latched_gp_origin_pub
+  Made it such that the gp_origin topic publisher is latched.
+* made it such that the gp_origin topic published latched.
+* Merge pull request `#1817 <https://github.com/mavlink/mavros/issues/1817>`_ from lucasw/pluginlib_hpp
+  use hpp instead of deprecated .h pluginlib headers
+* use hpp instead of deprecated .h pluginlib headers
+* Contributors: Lucas Walter, Shu-Nong Wu, Vladimir Ermakov
+
+1.15.0 (2022-12-30)
+-------------------
+* Merge pull request `#1806 <https://github.com/mavlink/mavros/issues/1806>`_ from scoutdi/fix-some-warnings
+  mavros: Fix some warnings
+* mavros: Fix some warnings
+* Contributors: Morten Fyhn Amundsen, Vladimir Ermakov
+
+1.14.0 (2022-09-24)
+-------------------
+* scripts: waypoint and param files are text, not binary
+  Fix `#1784 <https://github.com/mavlink/mavros/issues/1784>`_
+* Merge pull request `#1780 <https://github.com/mavlink/mavros/issues/1780>`_ from snktshrma/master
+  guided_target: accept position-target-global-int messages
+* plugins: add guided_target to accept offboard position targets
+  Update guided_target.cpp
+  Update guided_target.cpp
+  Update mavros_plugins.xml
+  Update CMakeLists.txt
+  Added offboard_position.cpp
+  Update apm_config.yaml
+  Update offboard_position.cpp
+  Update offboard_position.cpp
+  Rename offboard_position.cpp to guided_target.cpp
+  Update CMakeLists.txt
+  Update mavros_plugins.xml
+  Update apm_config.yaml
+  Update guided_target.cpp
+* Merge pull request `#1775 <https://github.com/mavlink/mavros/issues/1775>`_ from acxz/find-geographiclib
+  use already installed FindGeographicLib.cmake
+* add cmake module path for geographiclib on debian based systems
+* Merge pull request `#1744 <https://github.com/mavlink/mavros/issues/1744>`_ from amilcarlucas/pr_gimbal_diagnostics_fixes
+  mount_control.cpp: detect MOUNT_ORIENTATION stale messages
+* mount_control.cpp: detect MOUNT_ORIENTATION stale messages
+  correct MountConfigure response success
+  correct constructor initialization order
+  some gimbals send negated/inverted angle measurements, correct that to obey the MAVLink frame convention using run-time parameters
+* Merge pull request `#1743 <https://github.com/mavlink/mavros/issues/1743>`_ from amilcarlucas/pr_apm_config
+  apm_config.yaml: add mount configuration
+* apm_config.yaml: add mount configuration
+* Merge pull request `#1732 <https://github.com/mavlink/mavros/issues/1732>`_ from amilcarlucas/pr-meminfo-fix
+  MEMINFO fixes
+* sys_status.cpp fix free memory for values > 64KiB
+* Merge pull request `#1716 <https://github.com/mavlink/mavros/issues/1716>`_ from amilcarlucas/avoid-harcoded-values
+  sys_status.cpp: do not use harcoded constants
+* Merge pull request `#1711 <https://github.com/mavlink/mavros/issues/1711>`_ from amilcarlucas/diagnose-up-to-n-batteries
+  Diagnose up-to 10 batteries
+* *_config.yaml: document usage of multiple batteries diagnostics
+* sys_status.cpp: fix compilation
+* sys_status.cpp: support diagnostics on up-to 10 batteries
+  Uses as many battery monitors as the user specified in min_voltage parameter.
+  Add myself as a contributor, this is not my first patch to this file
+* Merge pull request `#1712 <https://github.com/mavlink/mavros/issues/1712>`_ from amilcarlucas/fix-disabled-diagnostics
+  sys_status.cpp: fix enabling of mem_diag and hwst_diag
+* sys_status.cpp: do not use harcoded constants
+* sys_status.cpp: Timeout on MEMINFO and HWSTATUS mavlink messages and publish on the diagnostics
+  Use atomic variable to prevent potential threading problems
+* sys_status.cpp: fix enabling of mem_diag and hwst_diag
+* Merge pull request `#1704 <https://github.com/mavlink/mavros/issues/1704>`_ from amilcarlucas/correct-bat-voltages
+  sys_status.cpp: Do not use battery1 voltage for all batteries.
+* sys_status.cpp: Do not use battery1 voltage as voltage for all other batteries (bugfix).
+  Support both cell and total voltages above 65V
+  Support up-to 14S batteries
+  If available, add cell voltage information to the battery diagnostic
+* Merge pull request `#1707 <https://github.com/mavlink/mavros/issues/1707>`_ from amilcarlucas/ignore-gimbal-sys-status
+  sys_status.cpp: ignore sys_status mavlink messages from gimbals
+* sys_status.cpp: ignore sys_status mavlink messages from gimbals
+* Merge pull request `#1703 <https://github.com/mavlink/mavros/issues/1703>`_ from amilcarlucas/remove-deprecated-battery2
+  sys_status.cpp: remove deprecated BATTERY2 mavlink message support
+* sys_status.cpp: remove deprecated BATTERY2 mavlink message support
+* Merge pull request `#1696 <https://github.com/mavlink/mavros/issues/1696>`_ from okalachev/patch-2
+  Disable startup_px4_usb_quirk in px4_config.yaml
+* Disable startup_px4_usb_quirk in px4_config.yaml
+* Contributors: Dr.-Ing. Amilcar do Carmo Lucas, Karthik Desai, Oleg Kalachev, Sanket Sharma, Vladimir Ermakov, acxz
+
+1.13.0 (2022-01-13)
+-------------------
+* Merge pull request `#1690 <https://github.com/mavlink/mavros/issues/1690>`_ from mavlink/fix-enum_sensor_orientation
+  Fix enum sensor_orientation
+* py-lib: fix compatibility with py3 for Noetic
+* test: add checks for ROTATION_CUSTOM
+* lib: Fix rotation search for CUSTOM
+  Fix `#1688 <https://github.com/mavlink/mavros/issues/1688>`_.
+* Contributors: Vladimir Ermakov
+
+1.12.2 (2021-12-12)
+-------------------
+* Merge pull request `#1672 <https://github.com/mavlink/mavros/issues/1672>`_ from okalachev/patch-1
+  Set time/publish_sim_time to false by default
+* Set time/publish_sim_time to false by default
+* Merge pull request `#1669 <https://github.com/mavlink/mavros/issues/1669>`_ from Hs293Go/master
+  plugin: setpoint_raw: move getParam to initializer
+* plugin: setpoint_raw: move getParam to initializer
+  Repeatedly getting the thrust_scaling parameter in a callback that can
+  be invoked from a fast control loop may fail spuriously and trigger a
+  fatal error
+* Contributors: Oleg Kalachev, Vladimir Ermakov, hs293go
+
+1.12.1 (2021-11-29)
+-------------------
+* mavconn: fix connection issue introduced by `#1658 <https://github.com/mavlink/mavros/issues/1658>`_
+* Merge pull request `#1660 <https://github.com/mavlink/mavros/issues/1660>`_ from scoutdi/fix-warnings
+  Fix warnings
+* mavros: Fix some warnings
+* Contributors: Morten Fyhn Amundsen, Vladimir Ermakov
+
+1.12.0 (2021-11-27)
+-------------------
+* Merge pull request `#1658 <https://github.com/mavlink/mavros/issues/1658>`_ from asherikov/as_bugfixes
+  Fix multiple bugs
+* Fix multiple bugs
+  - fix bad_weak_ptr on connect and disconnect
+  - introduce new API to avoid thread race when assigning callbacks
+  - fix uninitialized variable in TCP client constructor which would
+  randomly block TCP server
+  This is an API breaking change: if client code creates connections using
+  make_shared<>() instead of open_url(), it is now necessary to call new
+  connect() method explicitly.
+* lib: fix mission frame debug print
+* Contributors: Alexander Sherikov, Vladimir Ermakov
+
+1.11.1 (2021-11-24)
+-------------------
+* lib: fix build
+* Contributors: Vladimir Ermakov
+
+1.11.0 (2021-11-24)
+-------------------
+* lib: fix ftf warnings
+* plugin: setpoint_raw: fix misprint
+* plugin: sys: fix compillation error
+* plugin: initialize quaternions with identity
+  Eigen::Quaternion[d|f] () does not initialize with zeroes or identity.
+  So we must initialize with identity vector objects that can be left
+  unassigned.
+  Related to `#1652 <https://github.com/mavlink/mavros/issues/1652>`_
+* plugin: sys: Use wall timers for connection management
+  Fixes `#1629 <https://github.com/mavlink/mavros/issues/1629>`_
+* Merge pull request `#1651 <https://github.com/mavlink/mavros/issues/1651>`_ from Jaeyoung-Lim/pr-image-capture-plugin
+  Add camera plugin for interfacing with mavlink camera protocol
+* Add camera plugin for interfacing with mavlink camera protocol
+  Add camera image captured message for handling camera trigger information
+* Contributors: Jaeyoung-Lim, Vladimir Ermakov
+
+1.10.0 (2021-11-04)
+-------------------
+* Merge pull request `#1626 <https://github.com/mavlink/mavros/issues/1626>`_ from valbok/crash_on_shutdown
+  Show ENOTCONN error instead of crash on socket's shutdown
+* Merge pull request `#1627 <https://github.com/mavlink/mavros/issues/1627>`_ from marcelino-pensa/bug/ma-prevent-race-condition
+  Node dying when calling /mavros/param/pull
+* Remove reference
+* Catch std::length_error in send_message
+  Instead of crashing the process
+* Merge pull request `#1623 <https://github.com/mavlink/mavros/issues/1623>`_ from amilcarlucas/pr/more-typo-fixes
+  More typo fixes
+* sys_time.cpp: typo
+* Merge pull request `#1622 <https://github.com/mavlink/mavros/issues/1622>`_ from dayjaby/sys_time_pub_clock
+  sys_time: publish /clock for simulation times
+* sys_time: publish /clock for simulation times
+* Contributors: David Jablonski, Dr.-Ing. Amilcar do Carmo Lucas, Marcelino Almeida, Val Doroshchuk, Vladimir Ermakov
+
+1.9.0 (2021-09-09)
+------------------
+* Merge pull request `#1616 <https://github.com/mavlink/mavros/issues/1616>`_ from amilcarlucas/pr/RC_CHANNELS-mavlink2-extensions
+  Mavlink v2.0 specs for RC_CHANNELS_OVERRIDE accepts upto 18 channels.…
+* Changed OverrideRCIn to 18 channels
+* Merge pull request `#1617 <https://github.com/mavlink/mavros/issues/1617>`_ from amilcarlucas/pr/NAV_CONTROLLER_OUTPUT-plugin
+  Added NAV_CONTROLLER_OUTPUT Plugin
+* Merge pull request `#1619 <https://github.com/mavlink/mavros/issues/1619>`_ from amilcarlucas/pr/BATTERY2-topic
+  publish BATTERY2 message as /mavros/battery2 topic
+* publish BATTERY2 message as /mavros/battery2 topic
+* Mavlink v2.0 specs for RC_CHANNELS_OVERRIDE accepts upto 18 channels. The plugin publishes channels 9 to 18 if the FCU protocol version is 2.0
+* Added NAV_CONTROLLER_OUTPUT Plugin
+* Merge branch 'master' into master
+* plugins: reformat xml
+* Exclude changes to launch files.
+* Delete debug files.
+* Apply uncrustify changes.
+* Move Compass calibration report to extras. Rewrite code based on instructions.
+* Add compass calibration feedback status. Add service to call the 'Next' button in calibrations.
+* Contributors: André Filipe, BV-OpenSource, Karthik Desai, Vladimir Ermakov
+
+1.8.0 (2021-05-05)
+------------------
+* lib: ftf: allow both Quaterniond and Quaternionf for quaternion_to_mavlink()
+* extras: distance_sensor: rename param for custom orientation, apply uncrustify
+* px4_config: Add distance_sensor parameters
+* convert whole expression to mm
+* Contributors: Alexey Rogachevskiy, Thomas, Vladimir Ermakov
+
+1.7.1 (2021-04-05)
+------------------
+* re-generate all pymavlink enums
+* Contributors: Vladimir Ermakov
+
+1.7.0 (2021-04-05)
+------------------
+* lib: re-generate the code
+* plugins: mission: re-generate the code
+* MissionBase: correction to file information
+* MissionBase: add copyright from origional waypoint.cpp
+* uncrustify
+* whitespace
+* add rallypoint and geofence plugins to mavros plugins xml
+* add rallypoint and geofence plugins to CMakeList
+* Geofence: add geofence plugin
+* Rallypoint: add rallypoint plugin
+* Waypoint: inherit MissionBase class for mission protocol
+* MissionBase: breakout mission protocol from waypoint.cpp
+* README: Update PX4 Autopilot references
+  Much needed fixes to clarify the project is named correctly throughout the README
+  for the PX4 Autopilot, QGroundControl, and MAVLink
+* Fix https://github.com/mavlink/mavros/issues/849
+* Contributors: Charlie-Burge, Ramon Roche, Tobias Fischer, Vladimir Ermakov
+
+1.6.0 (2021-02-15)
+------------------
+* fix inconsistency in direction of yaw when using set_position in BODY frames and fix problems with yaw in setponit_raw
+* Contributors: zhouzhiwen2000
+
+1.5.2 (2021-02-02)
+------------------
+* readme: add source install note for Noetic release
+* Contributors: Vladimir Ermakov
+
+1.5.1 (2021-01-04)
+------------------
+* Fix tests for renaming of ECEF cases
+  Introduced in 6234af29
+* Initialise message structures
+  Uninitialised Mavlink 2 extension fields were sent if the fields were
+  not later set. Initialising the fields to zero is the default value for
+  extension fields and appears to the receiver as though sender is unaware
+  of Mavlink 2.
+  Instances were found with regex below, more may exist:
+  mavlink::[^:]+::msg::[^:={]+ ?[^:={]*;
+* Contributors: Rob Clarke
+
+1.5.0 (2020-11-11)
+------------------
+* mavros/sys_status: Fill flight_custom_version field
+* mavros: Add override specifiers
+* mavros: Move ECEF tf enums to separate enum class
+  This avoids a bunch of unhandled switch cases, and should
+  improve type safety a bit.
+* Contributors: Morten Fyhn Amundsen
+
+1.4.0 (2020-09-11)
+------------------
+* mavros: use mavlink::minimal:: after incompatible changes in mavlink package
+  Incompatible change: https://github.com/mavlink/mavlink/pull/1463
+  Fix: `#1483 <https://github.com/mavlink/mavros/issues/1483>`_, https://github.com/mavlink/mavlink/issues/1474
+* fixes based on vooon's review
+* fix issue what we couldn't set real parameters to 0.0 in mavros
+* Add error message
+* Fixed compilation error: publish std_msgs::String, not std::string for gcs_ip
+* Dispatch GCS IP address
+* Contributors: Artem Batalov, Marcelino, Morten Fyhn Amundsen, Vladimir Ermakov, Øystein Skotheim
+
+1.3.0 (2020-08-08)
+------------------
+* fake_gps.cpp: implement speed accuracy
+* fake_gps.cpp: Add mocap_withcovariance configuration parameter
+* fake_gps.cpp: add initial support for GPS_INPUT MAVLink message
+* apm.launch: Avoid warning:
+  Warning: You are using <arg> inside an <include> tag with the default=XY attribute - which is superfluous.
+  Use value=XY instead for less confusion.
+  Attribute name: respawn_mavros
+* Added support for MavProxy parameter file format
+* Ignore read-only parameters and statistics parameters in push operations
+* fix indentation
+* transform based on coordinate_frame
+* wind plugin: fix ArduPilot wind transformation
+* Contributors: Ben Wolsieffer, Dr.-Ing. Amilcar do Carmo Lucas, Yuan, Yuan Xu
+
+1.2.0 (2020-05-22)
+------------------
+* has_capability only works for enums
+* Uncrustify
+* Reworked Waypoint plugin to use capabilities_cb
+  Additionally added helper functions has_capability and has_capabilities
+  so that people can use either ints or enums to check if the UAS has a
+  capability. This might make accepting capabilities as a parameter moot
+  though.
+* Added alias for capabilities enum to UAS
+* Added alias for capabilities enum to UAS
+* Added a capabilities change cb queue
+  Plugins can now write functions that they add to the
+  capabilities_cb_vec. These functions will be called only when there is a
+  change to the capabilities themselves not whenever the known status of
+  the fcu_capabilities change.
+  These functions should have a parameter of type
+  mavlink::common::MAV_PROTOCOL_CAPABILITY which is essentially just a
+  uint64_t however being more opinionated is helpful when looking for what
+  the canonical enum names are in the mavlink project header files.
+* Uncrustify
+* Fixed Removed Uncrustify Option
+  I'm not sure why this didn't break when I ran uncrustify previously but
+  it seems that the align_number_left option was removed a while ago with
+  this merge request but I may be mistaken
+  https://github.com/uncrustify/uncrustify/pull/1393
+  I replaced it which align_number_right=true since it seems to be the
+  inverse of align_number_left=true.
+* Removed deprecated MAV_FRAME values
+* Removed use of variant in favor of templates
+  Since ROS messages are now the storage type in the node, providing to
+  and from conversion functions is sufficient and can be better expressed
+  with function templates.
+* Encode factor returns double
+* Changed encoding factor cog code
+* Uncrustify changes
+* Added new parameter to config.yamls
+* Updated waypoint plugin to support MISSION_ITEM_INT
+  These changes add a new parameter use_mission_item_int, which allows
+  users to prefer the old behavior. These changes also verify that the
+  flight controller supports _INT messages since APM only sends
+  REQUEST_ITEM messages even though it accepts _INT items back.
+  This commit is functional and tested with the APM stack only.
+  PX4 sitl jmavsim threw:
+  WP: upload failed: Command is not supported.
+  FCU: IGN MISSION_ITEM: Busy
+* Removed x_lat, y_long, z_alt from WP
+  These values seemed to be used due to the fact that double had
+  a greater resolution than float and doubles are used in the
+  ros msg. However they were only ever used for printing. Since
+  the int version of these messages has a greater resolution I
+  figure it is more useful to print the true value in the mavlink
+  message rather than the ros message value
+* Replaced MISSION_ITEM
+* add yaw to CMD_DO_SET_HOME
+* fix local angular velocity
+* Contributors: Braedon, David Jablonski, Martina Rivizzigno
+
+1.1.0 (2020-04-04)
+------------------
+* fixed styling
+* fixed indent from using spaces
+* updates apmrover2 modes and allows for arduboat mode changes
+* mavsafety kill feature for emergency stop
+* Include trajectory_msgs in CMakeLists.txt
+  This allows build to complete successfully.
+* Contributors: Anthony Goeckner, Matt Koos, aykutkabaoglu
+
+1.0.0 (2020-01-01)
+------------------
+
+0.33.4 (2019-12-12)
+-------------------
+* Replaced estimator status hardcoded definition with cog.
+* Refactor.
+* Replaced bool with git add -u as already done.
+* Added a publisher for estimator status message received from mavlink in sys_status.
+* Contributors: saifullah3396
+
+0.33.3 (2019-11-13)
+-------------------
+* package: fix 6fa58e59 - main package depends on trajectory_msgs, not extras
+* Contributors: Vladimir Ermakov
+
+0.33.2 (2019-11-13)
+-------------------
+
+0.33.1 (2019-11-11)
+-------------------
+* Add mutex
+* Initialize type mask
+* Handle frame with StaticTF
+* Handle different frames
+* Set yaw rate from message inputs
+* Add setpoint trajectory reset interface
+* Fix trajectory timestamp
+* Address comments
+* Pass reference with oneshot timers
+* Set typemasks correctly
+* Address more style comments
+* Address style comments
+* Visualize desired trajectory
+* Handle end of trajectory correctly
+* Remove message handlers
+* Add setpoint_trajectory plugin template
+* resolved merge conflict
+* Contributors: David Jablonski, Jaeyoung-Lim
+
+0.33.0 (2019-10-10)
+-------------------
+* Add vtol transition service
+* CleanUp
+* Update frame name in px4_config to match ROS standards
+* Enable publishing multiple static tfs at once, publish standard static tfs
+* moving ACK_TIMEOUT_DEFAULT out of class
+* cog: Update all generated code
+* mavros/src/plugins/command.cpp: one more style fix
+* mavros/src/plugins/command.cpp: style fixes
+* mavros/src/plugins/command.cpp: command_ack_timeout ms -> s
+* mavros/src/plugins/command.cpp: command_ack_timeout_ms int -> double
+* mavros/src/plugins/command.cpp: uncrustify
+* mavros/src/plugins/command.cpp: parameter for command's ack timeout
+  Sometimes commands take more time than default 5 seconds. Due to a low bandwidth
+  of UART and a high rate of some mavlink streams. To eliminate this problem it's
+  better to provide the parameter to configure the command's ack timeout.
+* added manual flag to mavros/state
+* Use GeoPoseStamped messages
+* Fix build
+* Add callback for SET_POSITION_TARGET_GLBOAL_INT
+* Contributors: David Jablonski, Jaeyoung-Lim, Sergei Zobov, Vladimir Ermakov, kamilritz
+
+0.32.2 (2019-09-09)
+-------------------
+* uncrustify
+* Add boolean to check if IMU data has been received
+  Follow sensor_msgs/Imu convention when data not present
+* Uncrustify the GPS_GLOBAL_ORIGIN handler in global_position
+* Fix global origin conversion to ecef (was using amsl where hae was required)
+  Summary: Fix global origin conversion to ecef (was using amsl where hae was required)
+* moved code to end of function
+* added amount of satellites to global_position/raw/
+* Contributors: David Jablonski, Nick Steele, Rob Clarke, Robert Clarke
+
+0.32.1 (2019-08-08)
+-------------------
+* uncrustify
+* Removed tf loop
+* made small edit to handle augmented gps fix
+* added a check for gps fix before setting origin for global_position/local odometry topic
+* Contributors: Eric, Lucas Hill
+
+0.32.0 (2019-07-06)
+-------------------
+* use direclty radians in yaml files
+* A simple typo error has fixed. (`#1260 <https://github.com/mavlink/mavros/issues/1260>`_)
+  * fix: a typing error "alredy" to "already"
+  * Fix: typo error (helth -> health)
+* Contributors: Martina Rivizzigno, 강정석
+
+0.31.0 (2019-06-07)
+-------------------
+* readme: fix udp-pb formatting
+* launch config: landing_target: fix and improve parameter list
+* remove duplicated landing_target parameters
+* enum_to_string: simplify landing_target_type_from_str
+* enum_to_string: update enumerations and checksum
+* extras: landing target: improve usability and flexibility
+* remove landing_target from blacklist
+* update to use pymavlink generator
+* px4_config: landing_target: minor correction
+* mav_frame: add frames of reference to wiki page; reference them on config
+* landing_target: removed child_frame_id
+* landing_target: minor code tweak/restructure
+* landing_target: uncrustify code
+* landing_target: updated to TF2 and Eigen math
+* landing_target: adapted to latest master code
+* landing_target: added timestamp and target size fields [!Won't compile unless a new mavlink release!]
+* landing_target: first commit
+* Switch to double-reflections instead of axes-reassignments
+* specialize transform_frame_ned_enu and transform_frame_enu_ned for type
+  Vector3d such that input vectors containing a NAN can be correctly transformed
+* Update README.md
+  update misspelling
+* Contributors: Julian Kent, Martina Rivizzigno, Shingo Matsuura, TSC21, Vladimir Ermakov
+
+0.30.0 (2019-05-20)
+-------------------
+* Filter heartbeats by component id as well
+  This addresses `#1107 <https://github.com/mavlink/mavros/issues/1107>`_ and `#1227 <https://github.com/mavlink/mavros/issues/1227>`_, by filtering incoming heartbeats
+  by component ids before publishing the state.
+* mavros/src/plugins/command.cpp: log if command's wait ack timeout (`#1222 <https://github.com/mavlink/mavros/issues/1222>`_)
+  * mavros/src/plugins/command.cpp: log if command's wait ack timeout
+  * mavros/src/plugins/command.cpp: log timeout in wait_ack_for
+* local_position fix `#1220 <https://github.com/mavlink/mavros/issues/1220>`_: initialize flags
+* plugin waypoint: fix spelling
+* Fix leading space before setpoint_raw
+  This causes an error when running `roslaunch`:
+  ```
+  error loading <rosparam> tag:
+  file /opt/ros/kinetic/share/mavros/launch/apm_config.yaml contains invalid YAML:
+  while parsing a block mapping
+  in "<string>", line 4, column 1:
+  startup_px4_usb_quirk: false
+  ^
+  expected <block end>, but found '<block mapping start>'
+  in "<string>", line 103, column 2:
+  setpoint_raw:
+  ^
+  XML is <rosparam command="load" file="$(arg config_yaml)"/>
+  The traceback for the exception was written to the log file
+  ```
+* global_position.cpp: spell in comment
+* Contributors: Dr.-Ing. Amilcar do Carmo Lucas, Josh Veitch-Michaelis, Nico van Duijn, Sergey Zobov, Vladimir Ermakov
+
+0.29.2 (2019-03-06)
+-------------------
+
+0.29.1 (2019-03-03)
+-------------------
+* All: catkin lint files
+* Update apm_config.yaml
+  Setting thrust_scaling in the setpoint_raw message (in my case, to use /mavros/setpoint_raw/attitude)
+  Without it, when using Gazebo, get the following problem
+  "Recieved thrust, but ignore_thrust is true: the most likely cause of this is a failure to specify the thrust_scaling parameters on px4/apm_config.yaml. Actuation will be ignored." from the function void attitude_cb in setpoint_raw.cpp (http://docs.ros.org/kinetic/api/mavros/html/setpoint__raw_8cpp_source.html)
+* cmake: fix `#1174 <https://github.com/mavlink/mavros/issues/1174>`_: add msg deps for package format 2
+* Issue `#1174 <https://github.com/mavlink/mavros/issues/1174>`_ Added dependency for mavros_msgs and mavros
+* Contributors: Adam Watkins, KiloNovemberDelta, Pierre Kancir, Vladimir Ermakov
+
+0.29.0 (2019-02-02)
+-------------------
+* Fix broken documentation URLs
+* px4_config: set the thrust_scaling to one by default
+* local_position: add an aditional topic for velocity on the local frame
+* Merge pull request `#1136 <https://github.com/mavlink/mavros/issues/1136>`_ from angri/param-timeout
+  Request timed up parameters as soon as possible
+* Merge branch 'master' into param-timeout
+* plugin:param added logging regarding rerequests
+* plugin:param fixed second and consequent timeouts in requesting list
+* mavros_extras: Wheel odometry plugin updated according to the final mavlink WHEEL_DISTANCE message.
+* mavros_extras: Wheel odometry plugin fixes after CR.
+* mavros_extras: Wheel odometry plugin added.
+* mavsys: add do_message_interval
+* sys_status: add set_message_interval service
+* lib: fix MAV_COMPONENT to_string
+* lib: update sensor orientations
+* plugin:param rerequest timed out parameters asap
+  Avoid vaiting for the next timeout
+* Contributors: Dr.-Ing. Amilcar do Carmo Lucas, Pavlo Kolomiiets, Randy Mackay, TSC21, Vladimir Ermakov, angri
+
+0.28.0 (2019-01-03)
+-------------------
+* plugin:param: publish new param value
+* Merge pull request `#1148 <https://github.com/mavlink/mavros/issues/1148>`_ from Kiwa21/pr-param-value
+  param plugin : add msg and publisher to catch latest param value
+* sys_status: fix build
+* sys_state: Small cleanup of `#1150 <https://github.com/mavlink/mavros/issues/1150>`_
+* VehicleInfo : add srv into sys_status plugin to request basic info from vehicle
+* sys_status: Fix `#1151 <https://github.com/mavlink/mavros/issues/1151>`_ bug - incorrect hex print
+* plugins:sys_status: Update diag decoder
+* frame_tf: mavlink_urt_to_covariance_matrix: make matrix symetrical
+* uas_data: add comment on the reverse tf fcu_frd->fcu
+* odom: add ODOMETRY handler and publisher
+* Handle LOCAL_POSITION_NED_COV messages, add pose_cov, velocity_cov, accel topics
+* sys_status : add MAV_TYPE as a parameter
+* rc_io: extend handle_servo_output_raw to 16 channels
+* param plugin : add msg and publisher to catch latest param value
+* plugin:command: Update for C++11, style fix
+  Signed-off-by: Vladimir Ermakov <vooon341@gmail.com>
+* Fixed NavSatFix bug in mavcmd takeoffcur and landcur
+* Fix mavros/param.py to work in python2 and python3, `#940 <https://github.com/mavlink/mavros/issues/940>`_
+  Simplify python3 fixes, `#940 <https://github.com/mavlink/mavros/issues/940>`_
+  Remove unnecessary functools
+* Fix mavros/param.py to work in python2 and python3, `#940 <https://github.com/mavlink/mavros/issues/940>`_
+  Simplify python3 fixes, `#940 <https://github.com/mavlink/mavros/issues/940>`_
+* Fix mavros/param.py to work in python2 and python3, `#940 <https://github.com/mavlink/mavros/issues/940>`_
+* correct the to_string function
+* set value back to 30
+* add autogenerated to_string function
+* style clean up
+* Use component_id to determine message sender
+* change message name from COMPANION_STATUS to COMPANION_PROCESS_STATUS
+* change message to include pid
+* Change from specific avoidance status message to a more generic companion status message
+* add plugin to receive avoidance status message
+* Added RPYrT and uncrustified.
+  Pushing version without spaces.
+  Version with tabs?
+  Fixed all?
+  Finally fixed.
+  Fixed requestes by @vooon
+  Fixed a def.
+  Fixed log format.
+  Fixed time for log.
+* apm_config: enable timesync and system for ardupilot
+* Contributors: Dan Nix, Gregoire Linard, Oleg Kalachev, Randy Mackay, TSC21, Vladimir Ermakov, baumanta, fnoop, pedro-roque
+
+0.27.0 (2018-11-12)
+-------------------
+* fix: a typing error "alredy" to "already"
+* plugins `#1110 <https://github.com/mavlink/mavros/issues/1110>`_ `#1111 <https://github.com/mavlink/mavros/issues/1111>`_: add eigen aligment to plugins with eigen-typed members
+* plugins: fix style
+* with this fix ,it will avoid eigen error on 32 bits system
+* Add service to send mavlink TRIGG_INTERVAL commands
+  Adapt trigger_control service to current mavlink cmd spec. Add a new service to change trigger interval and integration time
+* launch: fix `#1080 <https://github.com/mavlink/mavros/issues/1080>`_: APM now support mocap messages
+* Contributors: Gaogeolone, Moritz Zimmermann, Vladimir Ermakov, rapsealk
+
+0.26.3 (2018-08-21)
+-------------------
+* test: Fix sensor orientation. RPY 315 was removed in recent mavlink.
+  https://github.com/mavlink/mavlink/commit/3d94bccfedc5fc7f2ffad247adecff0c2dc03501
+* lib: update generated entries
+* Contributors: Vladimir Ermakov
+
+0.26.2 (2018-08-08)
+-------------------
+* Moving gps_rtk to mavros_extras
+* Update copyright name
+* Updating the gps_rtk plugin to fit mavros guidelines:
+  - Updating max_frag_len to allow changes in size in MAVLink seamlessly
+  - Using std::copy instead of memset
+  - Zero fill with std::fill
+  - Preapply the sequence flags
+  - Use of std iterators
+  - Add the maximal data size in the mavros_msgs
+* uncrustify
+* Update comments for the renaming
+* Renaming the GPS RTK module, Adding fragmentation, Changing the RTCM message
+* RTK Plugin; to forward RTCM messages
+  Signed-off-by: Alexis Paques <alexis.paques@gmail.com>
+* Contributors: Alexis Paques
+
+0.26.1 (2018-07-19)
+-------------------
+* setpoint_velocity: fix yaw rate setpoint rotation
+* lib fix `#1051 <https://github.com/mavlink/mavros/issues/1051>`_: Add APM BOAT modes support.
+  Currently SURFACE_BOAT uses same code as Rover2,
+  just different vehicle type.
+* Contributors: TSC21, Vladimir Ermakov
+
+0.26.0 (2018-06-06)
+-------------------
+* lib: add tunable timeout to gcs_quiet_mode
+* udp bridge: pass only HEARTBEATs when GCS is offline
+* sys_time : add advanced timesync algorithm
+* libmavconn: add scheme for permanent UDP broadcasting
+* GPS accuracy wo approximations (`#1034 <https://github.com/mavlink/mavros/issues/1034>`_)
+  * GPS horizontal and vertical accuracy are based now on h_acc, v_acc of GPS_RAW_INT.
+  * GPS horizontal and vertical accuracy are based now on h_acc, v_acc of GPS_RAW_INT if on mavlink v2.0,
+  or on DOP values otherwise.
+  * GPS accuracy update.
+* Contributors: Mohammed Kabir, Oleg Kalachev, Pavlo Kolomiiets, Vladimir Ermakov
+
+0.25.1 (2018-05-14)
+-------------------
+
+0.25.0 (2018-05-11)
+-------------------
+* wind plugin: uncrustify
+* use eigen and tf conversions (fix conventions), sync timestamp, fix typos
+* add wind estimation plugin
+* launch: fix style and keep apm.launch consistent with px4.launch
+* Updated apm.launch to forward new fcu_protocol parameter
+* glob pos plugin: correct gps velocity convention (NEU->ENU)
+* Split temperature publisher.
+* setpoint_raw: correct yaw transform; remove yaw transform methods
+* extras: odom: improve way frame naming is handled
+* extras: update odom plugin to send ODOMETRY msgs
+* lib: enum_to_string: update enums
+* setpoint_attitude: rename topic from target_attitude to attitude
+* imu plugin: fix pressure units
+* imu plugin: publish differential pressure (`#1001 <https://github.com/mavlink/mavros/issues/1001>`_)
+  * imu plugin: publish differential pressure
+  * imu plugin: fix doxygen snippets
+* lib: add PX4 mode AUTO.PRECLAND
+* extras: add covariance parsing to vision_speed_estimate (`#996 <https://github.com/mavlink/mavros/issues/996>`_)
+* Contributors: Anthony Lamping, Nuno Marques, Oleg Kalachev, Sondre Engebråten, TSC21, Thomas Stastny, Timo Hinzmann, Vladimir Ermakov
+
+0.24.0 (2018-04-05)
+-------------------
+* frame_tf: add assertion over size of covariance matrix URT
+* extras: update vision_pose_estimate plugin so it can send the covariance matrix also
+* plugins fix `#990 <https://github.com/mavlink/mavros/issues/990>`_: Explicitly cast boolean values. Else someone can shoot in his foot.
+* Update Readme for serial0: receive: End of file
+* launch : remove vision_pose_estimate from blacklist on ardupilot
+* plugin: ftp: fix typo
+* Add ability to send STATUSTEXT messages
+* Contributors: Anass Al, Andrei Korigodski, Pierre Kancir, TSC21, Vladimir Ermakov
+
+0.23.3 (2018-03-09)
+-------------------
+* lib: simplify geolib cmake module, try to fix CI
+* Contributors: Vladimir Ermakov
+
+0.23.2 (2018-03-07)
+-------------------
+* launch: add optional respawn_mavros arg
+* Contributors: Anthony Lamping
+
+0.23.1 (2018-02-27)
+-------------------
+* lib: Update to_string
+* plugin fix `#957 <https://github.com/mavlink/mavros/issues/957>`_: set MISSION_ITEM::mission_type
+* Contributors: Vladimir Ermakov
+
+0.23.0 (2018-02-03)
+-------------------
+* launch fix `#935 <https://github.com/mavlink/mavros/issues/935>`_: use orientation convention from message descr
+  https://mavlink.io/en/messages/common.html#DISTANCE_SENSOR
+* Blacklist HIL for APM since it is not relevent
+* add MAV_DISTANCE_SENSOR enum to_string
+* px4: add fcu_protocol argument to choose mavlink v1.0 or v2.0 to start
+  mavros in node.launch
+* node: add fcu_protocol parameter to be able to choose mavlink v1.0 or v2.0
+  when starting mavros node
+* mavros: default fcu_protocol parameter to mavlink v2.0
+* manual_control: `send` topic for sending MANUAL_CONTROL message to FCU
+* imu plugin: fix doxygen comments
+* imu plugin: change sufixes to match the body coordinate frame
+* Fix vision odom.
+* IMU plugin: add raw IMU conversion for PX4
+* mention rotation convention and fix NED to ENU description
+* Contributors: ChristophTobler, James Goppert, James Mare, Martina, Oleg Kalachev, TSC21, Vladimir Ermakov
+
+0.22.0 (2017-12-11)
+-------------------
+* scripts: Use non global mavros-ns allow to work __ns parameter
+* update script to support cycle_time on cmd trigger_control
+* plugin: Fix setpoint_position code style
+* Global position setpoint plugin (`#764 <https://github.com/mavlink/mavros/issues/764>`_)
+  * fix fake gps rate
+  * fix
+  * fix plugin_list
+  * fix
+  * add global position setpoint plugin
+  * add plugin to CMakeList
+  * fix bugs
+  * add altitude
+  * move GPS setpoints to setpoint_position plugin
+  * fix gps setpoint subscriber name
+  * move  GeographicLib::Geocentric earth inside callback
+  * add warning msg if timestamp is not updates
+  * Fix ROS_WARN
+* doc: move contributing.md to root
+* tools: add cogall.sh
+* split contribuion guide to GH file
+* Readme: add help for cog (`#876 <https://github.com/mavlink/mavros/issues/876>`_)
+* Setpoints: remove mav_frame string for local variable
+* Setpoints: add params for initial frame
+* Setpoint_velocity: uncrustify
+* Setpoint_position: uncrustify
+* Setpoints: add service to specify frame
+* Fix typo `#867 <https://github.com/mavlink/mavros/issues/867>`_
+* Improve output of script, replace which with more reliable hash `#867 <https://github.com/mavlink/mavros/issues/867>`_
+* Ensure dataset files exist, not just directories `#867 <https://github.com/mavlink/mavros/issues/867>`_
+* Remove previous duplicated link
+* Fixed issue link.
+* Fixed section header. Ready for troubleshooting PR.
+* Pushing troubleshooting section for Mavros.
+* Contributors: Mohamed Abdelkader Zahana, Pierre Kancir, Vladimir Ermakov, andresR8, fnoop, khancyr, pedro-roque
+
+0.21.5 (2017-11-16)
+-------------------
+* Yet another formatting.
+* px4_config.yaml updated. Minor formatting update.
+* global_position/raw/gps_vel should still be in earth fixed frame.
+* GPS fix's frame_id changed to body-fixed.
+* global_position/local angular twist changed from NANs to zeroes to be able to show in RViz.
+* readme: source install: add note on fetching all the deps
+* geolib_dataset: script: fix interpreter
+* Contributors: Pavlo Kolomiiets, TSC21
+
+0.21.4 (2017-11-01)
+-------------------
+* lib ftf: update dox, uncrustify
+* ENU<->ECEF transforms fix. (`#847 <https://github.com/mavlink/mavros/issues/847>`_)
+  * ENU<->ECEF transforms fix.
+  * Changes after review. Unit tests added.
+* test: fix copy-paste error in frame_tf
+* Contributors: Vladimir Ermakov, pavloblindnology
+
+0.21.3 (2017-10-28)
+-------------------
+* Update geographiclib script to work with zsh
+* scripts: fix typos and improve help messages consistency
+  commad -> command
+  safty -> safety
+  Start help messages with a capital letter.
+* uncrustify
+* plugin waypoints: Use stamped message
+* plugin waypoint: Add MISSION_ITEM_REACHED publisher
+  * Changes to be committed:
+  modified:   mavros/src/plugins/waypoint.cpp
+  modified:   mavros_msgs/CMakeLists.txt
+  new file:   mavros_msgs/srv/WaypointReached.srv
+  * change reached service name to classic topic
+  * Changed reached service to topic
+  * removed unused file
+  * Removed WaypointReached service
+  * Change reached message type to std_msgs::UInt16
+  * Delete WaypointReached.srv
+  * Restore WaypointPush.srv
+  * Fix tipo
+  * Update waypoint.cpp
+* launch: sync APM and PX4 configs
+* add debug plugin
+* Contributors: Jonas Vautherin, Patrick Jose Pereira, TSC21, Vladimir Ermakov, gui2dev
+
+0.21.2 (2017-09-25)
+-------------------
+* plugin: setpoint_attitude: Finish Andres fix
+* fix: attitude callback trigger
+* lib uas: remove inline on not inlined method
+* odom: general fixes and code tighting
+* Use tf2 for odom plugin and set reasoable defaults for local pos cov.
+* Contributors: Andres Rengifo, James Goppert, TSC21, Vladimir Ermakov
+
+0.21.1 (2017-09-22)
+-------------------
+* mavsys: mode: add solutions for setting AUTO.MISSION and AUTO.LOITER modes (`#814 <https://github.com/mavlink/mavros/issues/814>`_)
+  * mavsys: add notes on how to change mode to AUTO.MISSION on PX4 Pro
+  * enum_to_string: update enums
+  * mavsys: mode: move AUTO submodes info to argparser
+  * sys_status: leave note that MAV_TYPE_ONBOARD_CONTROLLER will be supported on PX4
+  * mavsys: mode: add note on changing to AUTO.LOITER
+* Solve the subscriber initialization
+* lib frame_tf: Add to_eigen() helper
+* Contributors: Alexis Paques, Nuno Marques, Vladimir Ermakov
+
+0.21.0 (2017-09-14)
+-------------------
+* plugin waypoint: Uncrustify, update init list
+* lib: Add to_sting for MAV_MISSION_RESULT
+* plugin waypoint: Rename current seq in wp list message
+* waypoint: Publish current waypoint seq
+* waypoint partial: Check parameter first with hasParam
+* waypoint partial: Documentation updates
+* waypoint: Document mid level helpers and fix indenting on rx handlers
+* waypoint: Document rx handlers
+* waypoint partial: Move FCU detection to connection_cb
+* waypoint partial: recommended changes to mavwp
+* waypoint partial: code style cleanup
+* waypoint partial: enable only on apm but allow override with parameter
+* waypoint partial: Handle case when partial push is out of range with local list and uncrustify
+* waypoint partial: enable only on apm through yaml
+* waypoint partial: stopped partial push from clearing parts of local waypoint copy
+* waypoint partial: uncrustify
+* waypoint partial: extend mavwp cli tool to do partial updating in push
+* waypoint partial: extended push in waypoint plugin to implement push partial
+* waypoint: uncrustify
+* waypoint: handle invalid_sequence mission_ack to prevent TXWP failure
+* Partial waypoint: added wp_transfered to push partial service response
+* Partial waypoint: renamed mavwp partial load arguments for consistency
+* Partial waypoint: fixed end index and added partial tx state
+* Partial Waypoint: handle service call in waypoint plugin
+* Partial waypoint: added partial updating to mavwp
+* imu_plugin: remove documentation of override func
+* imu plugin: uncrustify
+* imu plugin: don't be so explicit about in/out params
+* imu plugin: fix indentation
+* imu plugin: update setup_covariance method to use Eigen capabilities
+* imu plugin: use simpler format for one line comments
+* imu plugin: add code snippets to Doxygen documentation
+* IMU and attitude: general clean-up
+* CMake: explicitly link the atomic library (`#797 <https://github.com/mavlink/mavros/issues/797>`_)
+  For arm & mips architecture, the linker must explicitly be asked to
+  link the atomic library (with `-latomic`).
+  Otherwise, the linking fails with:
+  ```
+  | devel/lib/libmavros.so: undefined reference to `__atomic_load_8'
+  | devel/lib/libmavros.so: undefined reference to `__atomic_store_8'
+  | collect2: error: ld returned 1 exit status
+  ```
+  Linking `atomic` unconditionally as library is strictly needed only
+  for arm & mips, but it seems not to imply any further differences
+  with other architectures. Hence, this commit simply adds `atomic`
+  unconditionally for a uniform handling of all machine architectures.
+  This is an alternative solution to the proposed solution in `#790 <https://github.com/mavlink/mavros/issues/790>`_.
+  The issue was discovered cross-compiling mavros in meta-ros, the
+  OpenEmbedded layer for ROS. Some further pointers are available at:
+  https://github.com/bmwcarit/meta-ros/issues/525
+  Signed-off-by: Lukas Bulwahn <lukas.bulwahn@gmail.com>
+* setpoint_attitude: privatize message_filters subscribers
+* Updating comments for PX4Flow
+* Removing copter_visualization from the yaml files.
+  Adding odometry to apm_config
+  Changing frame_id to base_link for vibration
+* Update the apm_config and px4flow_config files
+* Update configuration from mavros_extras
+* Updating default settings from px4.yaml
+* * global_position/tf/send default to false
+  * imu, checked
+  * local_position/tf/send default to false
+  * local_position/tf/send_fcu default to false
+  * mission/pull_after_gcs default to true
+* Update time reference to fcu
+  Adding global_frame_id: 'earth' to apm_config
+* fcu to base_link
+* Changing fcu_utm to fcu
+* Solving default frame consistency in config files
+* Contributors: Alexis Paques, James Mare, James Stewart, Lukas Bulwahn, TSC21, Vladimir Ermakov
+
+0.20.1 (2017-08-28)
+-------------------
+
+0.20.0 (2017-08-23)
+-------------------
+* update generated code in plugins
+* update generated code
+* geolib: datasets: warn when not installed; update install script; launch SIGINT when not installed (`#778 <https://github.com/mavlink/mavros/issues/778>`_)
+  * geolib: make dataset install mandatory
+  * travis_ci: install python3; use geographiclib-datasets-download
+  * CMakeLists.txt: set datasets path
+  * travis_ci: create a path for the geoid dataset
+  * travis_ci: remove python3 install
+  * CMakeLists.txt: remove restriction regarding the geoid model
+  * CMakeLists.txt: only launch a warning if the geoid dataset is not installed
+  * CMakeLists.txt: simplify dataset path search and presentation
+  * scripts: install_geographiclib_datasets becomes version aware
+  * uas_data: dataset init: shutdown node if exception caught
+  * README: update GeographicLib info; geolib install script: check for more OS versions
+  * uas_data: small typo fix
+  * install_geolib_datasets: some fix
+  * CMakeLists.txt: be more clear on geoid dataset fault
+  * CMakeLists: push check geolib datasets to a cmake module
+  * travis_ci: update ppa repository
+  * uas_data: shutdown node and increase log level instead
+  * install_geographiclib_datasets: simplify script to only check download script version available
+  * uas_data: remove signal.h import
+* HIL Plugin
+  * add HilSensor.msg, HilStateQuaternion.msg, and add them in CMakeLists.txt
+  * Add hil_sensor.cpp plugin to send HIL_SENSOR mavlink message to FCU.
+  * fix HilSensor.msg. Make it more compact.
+  * Fix HilStateQuaternion.msg. Make it more compact.
+  * Add hil_state_quaternion plugin
+  * fix files: some variable names were wrong+some syntax problems
+  * fix syntax error in plugin .cpp files, make msg files match corresponding mavlink definitions
+  * fix plugin source files
+  * fix syntax
+  * fix function name. It was wrong.
+  * add HIL_GPS plugin
+  * add HilGPS.msg to CMakeList
+  * fix missing semicolon
+  * fix call of class name
+  * Add ACTUATOR_CONTROL_TARGET MAVLink message
+  * fix code
+  * increase number of fake satellites
+  * control sensor and control rates
+  * change control rate
+  * change control rate
+  * fix fake gps rate
+  * fix
+  * fix plugin_list
+  * fix
+  * remove unnecessary hil_sensor_mixin
+  * update HilSensor.msg and usage
+  * update HilStateQuaterion.msg and usage
+  * redo some changes; update HilGPS.msg and usage
+  * update hil_controls msg - use array of floats for aux channels
+  * merge actuator_control with actuator_control_target
+  * remove hil_sensor_mixin.h
+  * update actuator_control logic
+  * merge all plugins into a single one
+  * delete the remaining plugin files
+  * update description
+  * redo some changes; reduce LOC
+  * fix type cast on gps coord
+  * add HIL_OPTICAL_FLOW send based on OpticalFlowRad sub
+  * update authors list
+  * update subscribers names
+  * refactor gps coord convention
+  * add HIL_RC_INPUTS_RAW sender; cog protec msg structure and content
+  * apply correct rc_in translation; redo cog
+  * apply proper rotations and frame transforms
+  * remote throttle
+  * fix typo and msg api
+  * small changes
+  * refactor rcin_raw_cb
+  * new refactor to rcin_raw_cb arrays
+  * update velocity to meters
+  * readjust all the units so to match mavlink msg def
+  * update cog
+  * correct cog conversion
+  * refefine msg definitions to remove overhead
+  * hil: apply frame transform to body frame
+* apm_config.yaml: change prevent collision in distance_sensor id
+* Extras: add ardupilot rangefinder plugin
+* msgs fix `#625 <https://github.com/mavlink/mavros/issues/625>`_: Rename SetMode.Response.success to mode_sent
+* [WIP] Plugins: setpoint_attitude: add sync between thrust and attitude (`#700 <https://github.com/mavlink/mavros/issues/700>`_)
+  * plugins: setpoint_attitude: add sync between throttle and attitude topics to be sent together
+  * plugins: typo correction: replace throttle with thrust
+  * plugins: msgs: setpoint_attitude: replaces Float32Stamped for Thrust msg
+  * plugins: setpoint_attitude: add sync between twist and thrust (RPY+Thrust)
+  * setpoint_attitude: update the logic of thrust normalization verification
+  * setpoint_attitude: implement sync between tf listener and thrust subscriber
+  * TF sync listener: generalize topic type that can be syncronized with TF2
+  * TF2ListenerMixin: keep class template, use template for tf sync method only
+  * TF2ListenerMixin: fix and improve sync tf2_start method
+  * general update to yaml config files and parameters
+  * setpoint_attitude: add note on Thrust sub name
+  * setpoint_attitude: TF sync: pass subscriber pointer instead of binding it
+* apm_config: add mavros_extras/fake_gps plugin param config
+* px4_config: add gps_rate param
+* frame tf: move ENU<->ECEF transforms to ftf_frame_conversions.cpp
+* extras: mocap_fake_gps->fake_gps: generalize plugin and use GeographicLib possibilites
+* UAS: Share egm96_5 geoid via UAS class
+* Move FindGeographicLib.cmake to libmavconn, that simplify installation, simplify datasets instattator
+* Use GeographicLib tools to guarantee ROS msg def and enhance features (`#693 <https://github.com/mavlink/mavros/issues/693>`_)
+  * first commit
+  * Check for GeographicLib first without having to install it from the beginning each compile time
+  * add necessary cmake files
+  * remove gps_conversions.h and use GeographicLib to obtain the UTM coordinates
+  * move conversion functions to utils.h
+  * geographic conversions: update CMakeLists and package.xml
+  * geographic conversions: force download of the datasets
+  * geographic conversions: remove unneeded cmake module
+  * dependencies: use SHARED libs of geographiclib
+  * dependencies: correct FindGeographicLib.cmake so it can work for common Debian platforms
+  * CMakeList: do not be so restrict about GeographicLib dependency
+  * global position: odometry-use ECEF instead of UTM; update other fields
+  * global position: make travis happy
+  * global position: fix ident
+  * global_position: apply correct frames and frame transforms given each coordinate frame
+  * global_position: convert rcvd global origin to ECEF
+  * global_position: be more explicit about the ecef-enu transform
+  * global position: use home position as origin of map frame
+  * global position: minor refactoring
+  * global position: shield code with exception catch
+  * fix identation
+  * move dataset install to script; update README with new functionalities
+  * update README with warning
+  * global_position: fix identation
+  * update HomePosition to be consistent with the conversions in global_position to ensure the correct transformation of height
+  * home|global_position: fix compile errors, logic and dependencies
+  * home position: add height conversion
+  * travis: update to get datasets
+  * install geo dataset: update to verify alternative dataset folders
+  * travis: remove dataset install to allow clean build
+  * hp and gp: initialize geoid dataset once and make it thread safe
+  * README: update description relative to GeographicLib; fix typos
+  * global position: improve doxygen references
+  * README: update with some tips on rosdep install
+* [WIP] Set framework to define offset between global origin and current local position (`#691 <https://github.com/mavlink/mavros/issues/691>`_)
+  * add handlers for GPS_GLOBAL_ORIGIN and SET_GPS_GLOBAL_ORIGIN
+  * fix cast of encoding types
+  * refactor gps coord conversions
+  * uncrustify
+  * global_position: add LOCAL_POSITION_NED_SYSTEM_GLOBAL_OFFSET handler
+  * global_position: add trasform sender for offset
+  * global_origin: refactor covariance matrix
+  * global_position: update copyright
+  * global_position: add initial support to REP 105
+  * px4_config: global_position: update frame description
+  * global_position: correct identation
+  * global position: be consistent with frame and methods names (ecef!=wgs84, frame_id!=global_frame_id)
+  * global_position: updates to code structure
+  * global_position: fix identation
+* lib: frame_tf: Style fix
+* extras: odom: Minor fixes
+* extras: Add odom plugin
+* lib: frame_tf: Add support for 6d and 9d covariance matrices
+* Contributors: James Goppert, Nuno Marques, TSC21, Vladimir Ermakov, khancyr
+
 0.19.0 (2017-05-05)
 -------------------
 * launch: remove setpoint-attitude from apm blacklist
@@ -58,7 +1160,7 @@ Changelog for package mavros
 * Update README for all packages
 * Update README.md
   Fix instructions: Only the Kinetic distro actually works for MAVLink 2.0
-* Contributors: Beat Küng, Georgii Staroselskii, Lorenz Meier, Vladimir Ermakov
+* Contributors: Beat Kung, Georgii Staroselskii, Lorenz Meier, Vladimir Ermakov
 
 0.18.3 (2016-07-07)
 -------------------

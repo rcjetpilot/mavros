@@ -34,7 +34,7 @@ public:
 		has_rc_channels_msg(false)
 	{ }
 
-	void initialize(UAS &uas_)
+	void initialize(UAS &uas_) override
 	{
 		PluginBase::initialize(uas_);
 
@@ -45,7 +45,7 @@ public:
 		enable_connection_cb();
 	};
 
-	Subscriptions get_subscriptions() {
+	Subscriptions get_subscriptions() override {
 		return {
 			       make_handler(&RCIOPlugin::handle_rc_channels_raw),
 			       make_handler(&RCIOPlugin::handle_rc_channels),
@@ -93,7 +93,7 @@ private:
 		raw_rc_in[offset + 5] = port.chan6_raw;
 		raw_rc_in[offset + 6] = port.chan7_raw;
 		raw_rc_in[offset + 7] = port.chan8_raw;
-		// [[[end]]] (checksum: fcb14b1ddfff9ce7dd02f5bd03825cff)
+		// [[[end]]] (sum: /LFLHd//nO)
 
 		auto rcin_msg = boost::make_shared<mavros_msgs::RCIn>();
 
@@ -146,7 +146,7 @@ private:
 		case  3: raw_rc_in[ 2] = channels.chan3_raw;
 		case  2: raw_rc_in[ 1] = channels.chan2_raw;
 		case  1: raw_rc_in[ 0] = channels.chan1_raw;
-		// [[[end]]] (checksum: 56e9ab5407bd2c864abde230a6cf3fed)
+		// [[[end]]] (sum: VumrVAe9LI)
 		case  0: break;
 		}
 
@@ -163,9 +163,18 @@ private:
 	{
 		lock_guard lock(mutex);
 
-		size_t offset = port.port * 8;
-		if (raw_rc_out.size() < offset + 8)
-			raw_rc_out.resize(offset + 8);
+		uint8_t num_channels;
+
+		// If using Mavlink protocol v2, number of available servo channels is 16;
+		// otherwise, 8
+		if (msg->magic == MAVLINK_STX)
+			num_channels = 16;
+		else
+			num_channels = 8;
+
+		size_t offset = port.port * num_channels;
+		if (raw_rc_out.size() < offset + num_channels)
+			raw_rc_out.resize(offset + num_channels);
 
 		// [[[cog:
 		// for i in range(1, 9):
@@ -179,7 +188,22 @@ private:
 		raw_rc_out[offset + 5] = port.servo6_raw;
 		raw_rc_out[offset + 6] = port.servo7_raw;
 		raw_rc_out[offset + 7] = port.servo8_raw;
-		// [[[end]]] (checksum: 946d524fe9fbaa3e52fbdf8a905fbf0f)
+		// [[[end]]] (sum: lG1ST+n7qj)
+		if (msg->magic == MAVLINK_STX) {
+			// [[[cog:
+			// for i in range(9, 17):
+			//     cog.outl("raw_rc_out[offset + %d] = port.servo%d_raw;" % (i - 1, i))
+			// ]]]
+			raw_rc_out[offset + 8] = port.servo9_raw;
+			raw_rc_out[offset + 9] = port.servo10_raw;
+			raw_rc_out[offset + 10] = port.servo11_raw;
+			raw_rc_out[offset + 11] = port.servo12_raw;
+			raw_rc_out[offset + 12] = port.servo13_raw;
+			raw_rc_out[offset + 13] = port.servo14_raw;
+			raw_rc_out[offset + 14] = port.servo15_raw;
+			raw_rc_out[offset + 15] = port.servo16_raw;
+			// [[[end]]] (sum: YKOGy6b6oS)
+		}
 
 		auto rcout_msg = boost::make_shared<mavros_msgs::RCOut>();
 
@@ -207,12 +231,12 @@ private:
 		if (!m_uas->is_ardupilotmega() && !m_uas->is_px4())
 			ROS_WARN_THROTTLE_NAMED(30, "rc", "RC override not supported by this FCU!");
 
-		mavlink::common::msg::RC_CHANNELS_OVERRIDE ovr;
+		mavlink::common::msg::RC_CHANNELS_OVERRIDE ovr = {};
 		ovr.target_system = m_uas->get_tgt_system();
 		ovr.target_component = m_uas->get_tgt_component();
 
 		// [[[cog:
-		// for i in range(1, 9):
+		// for i in range(1, 19):
 		//     cog.outl("ovr.chan%d_raw = req->channels[%d];" % (i, i - 1))
 		// ]]]
 		ovr.chan1_raw = req->channels[0];
@@ -223,13 +247,22 @@ private:
 		ovr.chan6_raw = req->channels[5];
 		ovr.chan7_raw = req->channels[6];
 		ovr.chan8_raw = req->channels[7];
-		// [[[end]]] (checksum: bd27f3e85f5ab614ce1332ae3f4c6ebd)
-
+		ovr.chan9_raw = req->channels[8];
+		ovr.chan10_raw = req->channels[9];
+		ovr.chan11_raw = req->channels[10];
+		ovr.chan12_raw = req->channels[11];
+		ovr.chan13_raw = req->channels[12];
+		ovr.chan14_raw = req->channels[13];
+		ovr.chan15_raw = req->channels[14];
+		ovr.chan16_raw = req->channels[15];
+		ovr.chan17_raw = req->channels[16];
+		ovr.chan18_raw = req->channels[17];
+		// [[[end]]] (sum: PJ9/HOd6SW)
 		UAS_FCU(m_uas)->send_message_ignore_drop(ovr);
 	}
 };
 }	// namespace std_plugins
 }	// namespace mavros
 
-#include <pluginlib/class_list_macros.h>
+#include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(mavros::std_plugins::RCIOPlugin, mavros::plugin::PluginBase)

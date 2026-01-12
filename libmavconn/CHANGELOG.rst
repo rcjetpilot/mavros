@@ -2,6 +2,366 @@
 Changelog for package libmavconn
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+1.21.1 (2025-12-12)
+-------------------
+
+1.21.0 (2025-09-08)
+-------------------
+* regenerate all
+* Contributors: Vladimir Ermakov
+
+1.20.1 (2025-05-05)
+-------------------
+
+1.20.0 (2024-10-10)
+-------------------
+
+1.19.0 (2024-06-06)
+-------------------
+
+1.18.0 (2024-03-03)
+-------------------
+
+1.17.0 (2023-09-09)
+-------------------
+* Merge pull request `#1865 <https://github.com/mavlink/mavros/issues/1865>`_ from scoutdi/warnings
+  Fix / suppress some build warnings
+* Suppress warnings from included headers
+* Contributors: Morten Fyhn Amundsen, Vladimir Ermakov
+
+1.16.0 (2023-05-05)
+-------------------
+
+1.15.0 (2022-12-30)
+-------------------
+* Merge pull request `#1794 <https://github.com/mavlink/mavros/issues/1794>`_ from rossizero/master
+  libmavconn: fix MAVLink v1.0 output selection
+* libmavconn: fix MAVLink v1.0 output selection
+  Fix `#1787 <https://github.com/mavlink/mavros/issues/1787>`_
+* Contributors: Vladimir Ermakov, rosrunne
+
+1.14.0 (2022-09-24)
+-------------------
+* libmavconn: fix MAVLink v1.0 output selection
+  Fix `#1787 <https://github.com/mavlink/mavros/issues/1787>`_
+* Merge pull request `#1775 <https://github.com/mavlink/mavros/issues/1775>`_ from acxz/find-geographiclib
+  use already installed FindGeographicLib.cmake
+* use already installed FindGeographicLib.cmake
+* Contributors: Vladimir Ermakov, acxz
+
+1.13.0 (2022-01-13)
+-------------------
+
+1.12.2 (2021-12-12)
+-------------------
+
+1.12.1 (2021-11-29)
+-------------------
+* mavconn: fix connection issue introduced by `#1658 <https://github.com/mavlink/mavros/issues/1658>`_
+* Contributors: Vladimir Ermakov
+
+1.12.0 (2021-11-27)
+-------------------
+* Merge pull request `#1658 <https://github.com/mavlink/mavros/issues/1658>`_ from asherikov/as_bugfixes
+  Fix multiple bugs
+* Fix multiple bugs
+  - fix bad_weak_ptr on connect and disconnect
+  - introduce new API to avoid thread race when assigning callbacks
+  - fix uninitialized variable in TCP client constructor which would
+  randomly block TCP server
+  This is an API breaking change: if client code creates connections using
+  make_shared<>() instead of open_url(), it is now necessary to call new
+  connect() method explicitly.
+* Contributors: Alexander Sherikov, Vladimir Ermakov
+
+1.11.1 (2021-11-24)
+-------------------
+
+1.11.0 (2021-11-24)
+-------------------
+
+1.10.0 (2021-11-04)
+-------------------
+* Merge pull request `#1626 <https://github.com/mavlink/mavros/issues/1626>`_ from valbok/crash_on_shutdown
+  Show ENOTCONN error instead of crash on socket's shutdown
+* Show ENOTCONN error instead of crash
+  When a client suddenly drops the connection,
+  socket.shutdown() will throw an exception:
+  boost::exception_detail::clone_impl<boost::exception_detail::error_info_injector<boost::system::system_error> >
+  what():  shutdown: Transport endpoint is not connected
+  Showing an error in this common case looks more reasonable than crashing.
+* Contributors: Val Doroshchuk, Vladimir Ermakov
+
+1.9.0 (2021-09-09)
+------------------
+
+1.8.0 (2021-05-05)
+------------------
+
+1.7.1 (2021-04-05)
+------------------
+
+1.7.0 (2021-04-05)
+------------------
+
+1.6.0 (2021-02-15)
+------------------
+
+1.5.2 (2021-02-02)
+------------------
+
+1.5.1 (2021-01-04)
+------------------
+* Fix test for renaming of HEARTBEAT
+* Initialise message structures
+  Uninitialised Mavlink 2 extension fields were sent if the fields were
+  not later set. Initialising the fields to zero is the default value for
+  extension fields and appears to the receiver as though sender is unaware
+  of Mavlink 2.
+  Instances were found with regex below, more may exist:
+  mavlink::[^:]+::msg::[^:={]+ ?[^:={]*;
+* Contributors: Rob Clarke
+
+1.5.0 (2020-11-11)
+------------------
+* libmavconn: Fix build warnings
+* Contributors: Morten Fyhn Amundsen
+
+1.4.0 (2020-09-11)
+------------------
+* Dispatch GCS IP address
+* Contributors: Morten Fyhn Amundsen
+
+1.3.0 (2020-08-08)
+------------------
+* allow mavros to compile in CI environment
+* Contributors: Marcelino
+
+1.2.0 (2020-05-22)
+------------------
+
+1.1.0 (2020-04-04)
+------------------
+
+1.0.0 (2020-01-01)
+------------------
+
+0.33.4 (2019-12-12)
+-------------------
+* add macro for get_io_service() to work with boost>1.70
+* Contributors: acxz
+
+0.33.3 (2019-11-13)
+-------------------
+
+0.33.2 (2019-11-13)
+-------------------
+
+0.33.1 (2019-11-11)
+-------------------
+* resolved merge conflict
+* Contributors: David Jablonski
+
+0.33.0 (2019-10-10)
+-------------------
+* libmavconn: simplify parse_buffer, and fix dropped_packets and parse_error counters
+  Currently the dropped_packets & parse_error counters are always published as 0 in mavros_diag.cpp.
+  This seems to be caused by using the wrong status struct.
+  Seems like mavros was editing m_status after mavlink_frame_char_buffer. This struct
+  seems to be the parsing state, and looks like it shouldn't be modified by the caller (for example
+  status->parse_error is zeroed out in the end of mavlink_frame_char_buffer).
+  Also, the crc & signature checks done in mavros seems redundant.
+  r_mavlink_status seems to be the struct that holds the mavlink connection information, therefore I
+  changed get_status to return it instead.
+  This fixes `#1285 <https://github.com/mavlink/mavros/issues/1285>`_.
+* Contributors: Koby Aizer
+
+0.32.2 (2019-09-09)
+-------------------
+
+0.32.1 (2019-08-08)
+-------------------
+
+0.32.0 (2019-07-06)
+-------------------
+
+0.31.0 (2019-06-07)
+-------------------
+* readme: fix udp-pb formatting
+* Contributors: Vladimir Ermakov
+
+0.30.0 (2019-05-20)
+-------------------
+
+0.29.2 (2019-03-06)
+-------------------
+
+0.29.1 (2019-03-03)
+-------------------
+* All: catkin lint files
+* Contributors: Pierre Kancir
+
+0.29.0 (2019-02-02)
+-------------------
+* Merge branch 'master' into param-timeout
+* libmavconn: Fix building without installation. Detect CI environment
+* ci:test: temporary disable failed udp bind test
+* mavconn:pkg: Move generated files to build tree
+* Contributors: Vladimir Ermakov
+
+0.28.0 (2019-01-03)
+-------------------
+* libmavconn: add the possibility to set the source component ID through the send_message method
+* Contributors: TSC21
+
+0.27.0 (2018-11-12)
+-------------------
+* bind should be called after reuse_address is set
+* Contributors: Shahar Kosti
+
+0.26.3 (2018-08-21)
+-------------------
+* Prevent MAVConnTCPClient::do_recv and MAVConnTCPServer::do_accept from running after destruction has begun
+* libmavconn/CMakeLists.txt: link mavconn-test against pthread
+* Contributors: mlvov
+
+0.26.2 (2018-08-08)
+-------------------
+
+0.26.1 (2018-07-19)
+-------------------
+
+0.26.0 (2018-06-06)
+-------------------
+* libmavconn: add scheme for permanent UDP broadcasting
+* test python 3 f-string formatting
+* Contributors: Oleg Kalachev, Vladimir Ermakov
+
+0.25.1 (2018-05-14)
+-------------------
+* lib `#1026 <https://github.com/mavlink/mavros/issues/1026>`_: fix logInform compat
+* lib `#1026 <https://github.com/mavlink/mavros/issues/1026>`_: add compat header for older console-bridge
+* Contributors: Vladimir Ermakov
+
+0.25.0 (2018-05-11)
+-------------------
+* lib: console-bridge uses macroses...
+* lib: fixing console-bridge now prefixed
+* Contributors: Vladimir Ermakov
+
+0.24.0 (2018-04-05)
+-------------------
+* libmavconn: make serial.cpp more portable
+* libmavconn : enable low-latency mode on Linux
+  Some common USB-UART convertors like the FTDI accumulates individual bytes from the serial link
+  in order to send them in a single USB packet (Nagling). This commit sets the ASYNC_LOW_LATENCY flag,
+  which the FTDI kernel driver interprets as a request to drop the Nagling timer to 1ms (i.e send all
+  accumulated bytes after 1ms.)
+  This reduces average link RTT to under 5ms at 921600 baud, and enables the use of mavros in
+  systems where low latency is required to get good performance for e.g estimation and controls.
+* Contributors: Mohammed Kabir, Vladimir Ermakov
+
+0.23.3 (2018-03-09)
+-------------------
+* libmavconn: better preprocessor conditions for serial workaround
+* libmavconn : fix hardware flow control setting for Boost < v1.66
+  This commit fixes handling of hardware flow control. Due to bugs in Boost, set_option() would not work for flow control settings. This is fixed in Boost v1.66. Relevant Boost commit : https://github.com/boostorg/asio/commit/619cea4356
+* lib cmake: disable debug message
+* lib: simplify geolib cmake module, try to fix CI
+* Contributors: Mohammed Kabir, Vladimir Ermakov
+
+0.23.2 (2018-03-07)
+-------------------
+* mavconn: small style fix
+* Libmavconn : Set the serial port on Raw mode to prevent EOF error
+* Libmavconn: ensure the ports are cleanly closed before end connexions.
+* Contributors: Pierre Kancir, Vladimir Ermakov
+
+0.23.1 (2018-02-27)
+-------------------
+* compile also with boost >= 1.66.0
+  In boost 1.66.0, which includes boost-asio 1.12.0, the asio
+  interfaces have been changed to follow the "C++ Extensions for
+  Networking" Technical Specification [1]. As a consequence,
+  resolvers now produce ranges rather than iterators.
+  In boost < 1.66.0, resolver.resolve returns an iterator that must
+  be passed to `std::for_each`. As this iterator in boost < 1.66.0
+  does not provide begin() and end() member functions, it cannot be
+  simply turned into a proper range.
+  For boost >= 1.66.0, resolver.resolve returns a range, which
+  can be just iterated through with `for (auto v : _)` syntax.
+  As it is not possible to have one way to iterate through the result
+  independent of the boost version, a preprocessing directive selects
+  the proper synactic iteration construction depending on the provided
+  boost-asio library version [2].
+  This way, this commit is backwards compatible with boost < 1.66.0
+  and compiles properly with boost >= 1.66.0.
+  The issue was identified in a build with the cross-compilation tool
+  chain provided in the meta-ros OpenEmbedded layer [3].
+  [1] http://www.boost.org/doc/libs/1_66_0/doc/html/boost_asio/net_ts.html
+  [2] https://github.com/boostorg/asio/commit/0c9cbdfbf217146c096265b5eb56089e8cebe608
+  [3] http://github.com/bmwcarit/meta-ros
+  Signed-off-by: Lukas Bulwahn <lukas.bulwahn@gmail.com>
+* Contributors: Lukas Bulwahn
+
+0.23.0 (2018-02-03)
+-------------------
+* libmavconn: warn->debug table entry message
+* Contributors: Anthony Lamping
+
+0.22.0 (2017-12-11)
+-------------------
+
+0.21.5 (2017-11-16)
+-------------------
+
+0.21.4 (2017-11-01)
+-------------------
+* cmake: do not warn about datasets, only abuse CI where that messages threated as a problem.
+* Contributors: Vladimir Ermakov
+
+0.21.3 (2017-10-28)
+-------------------
+
+0.21.2 (2017-09-25)
+-------------------
+
+0.21.1 (2017-09-22)
+-------------------
+
+0.21.0 (2017-09-14)
+-------------------
+
+0.20.1 (2017-08-28)
+-------------------
+* lib: Fix compilation with mavlink 2017.8.26
+* Contributors: Vladimir Ermakov
+
+0.20.0 (2017-08-23)
+-------------------
+* geolib: datasets: warn when not installed; update install script; launch SIGINT when not installed (`#778 <https://github.com/mavlink/mavros/issues/778>`_)
+  * geolib: make dataset install mandatory
+  * travis_ci: install python3; use geographiclib-datasets-download
+  * CMakeLists.txt: set datasets path
+  * travis_ci: create a path for the geoid dataset
+  * travis_ci: remove python3 install
+  * CMakeLists.txt: remove restriction regarding the geoid model
+  * CMakeLists.txt: only launch a warning if the geoid dataset is not installed
+  * CMakeLists.txt: simplify dataset path search and presentation
+  * scripts: install_geographiclib_datasets becomes version aware
+  * uas_data: dataset init: shutdown node if exception caught
+  * README: update GeographicLib info; geolib install script: check for more OS versions
+  * uas_data: small typo fix
+  * install_geolib_datasets: some fix
+  * CMakeLists.txt: be more clear on geoid dataset fault
+  * CMakeLists: push check geolib datasets to a cmake module
+  * travis_ci: update ppa repository
+  * uas_data: shutdown node and increase log level instead
+  * install_geographiclib_datasets: simplify script to only check download script version available
+  * uas_data: remove signal.h import
+* Move FindGeographicLib.cmake to libmavconn, that simplify installation, simplify datasets instattator
+* Contributors: Nuno Marques, Vladimir Ermakov
+
 0.19.0 (2017-05-05)
 -------------------
 

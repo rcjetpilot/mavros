@@ -19,7 +19,7 @@
 #include <mavros_msgs/CamIMUStamp.h>
 
 namespace mavros {
-namespace extra_plugins{
+namespace extra_plugins {
 /**
  * @brief Camera IMU synchronisation plugin
  *
@@ -33,17 +33,17 @@ public:
 		cam_imu_sync_nh("~cam_imu_sync")
 	{ }
 
-	void initialize(UAS &uas_)
+	void initialize(UAS &uas_) override
 	{
 		PluginBase::initialize(uas_);
 
 		cam_imu_pub = cam_imu_sync_nh.advertise<mavros_msgs::CamIMUStamp>("cam_imu_stamp", 10);
 	}
 
-	Subscriptions get_subscriptions()
+	Subscriptions get_subscriptions() override
 	{
 		return {
-			       make_handler(&CamIMUSyncPlugin::handle_cam_trig)
+			make_handler(&CamIMUSyncPlugin::handle_cam_trig)
 		};
 	}
 
@@ -65,5 +65,5 @@ private:
 }	// namespace extra_plugins
 }	// namespace mavros
 
-#include <pluginlib/class_list_macros.h>
+#include <pluginlib/class_list_macros.hpp>
 PLUGINLIB_EXPORT_CLASS(mavros::extra_plugins::CamIMUSyncPlugin, mavros::plugin::PluginBase)

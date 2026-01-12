@@ -40,12 +40,15 @@ public:
 	 */
 	MAVConnSerial(uint8_t system_id = 1, uint8_t component_id = MAV_COMP_ID_UDP_BRIDGE,
 			std::string device = DEFAULT_DEVICE, unsigned baudrate = DEFAULT_BAUDRATE, bool hwflow = false);
-	~MAVConnSerial();
+	virtual ~MAVConnSerial();
 
+	void connect(
+			const ReceivedCb &cb_handle_message,
+			const ClosedCb &cb_handle_closed_port = ClosedCb()) override;
 	void close() override;
 
 	void send_message(const mavlink::mavlink_message_t *message) override;
-	void send_message(const mavlink::Message &message) override;
+	void send_message(const mavlink::Message &message, const uint8_t source_compid) override;
 	void send_bytes(const uint8_t *bytes, size_t length) override;
 
 	inline bool is_open() override {
@@ -66,4 +69,3 @@ private:
 	void do_write(bool check_tx_state);
 };
 }	// namespace mavconn
-
